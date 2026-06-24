@@ -808,8 +808,9 @@ def is_email_relevant(sender, subject, body, catalog, crm_emails, attachment_tex
         return True
         
     # 4. Check if body contains any SKU ID from the catalog
-    for sku_id in catalog.skus.keys():
-        if sku_id.lower() in body_lower:
+    for sku in catalog.skus:
+        sku_id = sku.get("sku_id", "")
+        if sku_id and sku_id.lower() in body_lower:
             print(f"[Email Filter] MATCH: Body contains SKU ID '{sku_id}'.")
             return True
             
