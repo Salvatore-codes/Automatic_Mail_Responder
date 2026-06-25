@@ -130,6 +130,24 @@ passes += check(
     )
 )
 
+# ── 9. processed_messages tracking tests
+from src.database_sqlite import is_message_processed, log_processed_message
+import uuid
+
+test_msg_id = f"<test-{uuid.uuid4()}@example.com>"
+total += 1
+passes += check(
+    "is_message_processed() returns False for unseen message ID",
+    not is_message_processed(test_msg_id)
+)
+
+log_processed_message(test_msg_id, "12345")
+total += 1
+passes += check(
+    "is_message_processed() returns True after log_processed_message()",
+    is_message_processed(test_msg_id)
+)
+
 print()
 print(f"Results: {passes}/{total} tests passed.")
 sys.exit(0 if passes == total else 1)

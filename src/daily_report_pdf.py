@@ -52,12 +52,12 @@ def _register_fonts():
 
 _register_fonts()
 
-def generate_daily_report(output_path):
+def generate_daily_report(output_path, tenant_id=None):
     """Queries SQLite and generates a daily transaction report PDF."""
     today_str = datetime.datetime.now().strftime("%Y-%m-%d")
     
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    from src.database_sqlite import get_connection
+    conn = get_connection(tenant_id)
     cursor = conn.cursor()
     
     # 1. Fetch today's quotations
@@ -266,14 +266,21 @@ def generate_daily_report(output_path):
     doc.build(story)
     print(f"[Success] Daily report PDF generated at {output_path}")
 
-def send_daily_report_email(smtp_server, smtp_port, email_user, email_pass, recipient_email):
+def send_daily_report_email(smtp_server, smtp_port, email_user, email_pass, recipient_email, tenant_id=None):
     """Generates the daily report PDF and emails it to the supervisor."""
     today_str = datetime.datetime.now().strftime("%Y-%m-%d")
     pdf_filename = f"Daily_Report_{today_str}.pdf"
-    pdf_path = os.path.join(project_root, "static", pdf_filename)
+    
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if tenant_id and tenant_id != "default":
+        pdf_dir = os.path.join(project_root, "static", tenant_id)
+        os.makedirs(pdf_dir, exist_ok=True)
+        pdf_path = os.path.join(pdf_dir, pdf_filename)
+    else:
+        pdf_path = os.path.join(project_root, "static", pdf_filename)
     
     # 1. Generate PDF
-    generate_daily_report(pdf_path)
+    generate_daily_report(pdf_path, tenant_id=tenant_id)
     
     if not email_user or not email_pass or not recipient_email:
         print("[Warning] SMTP settings missing. Daily report not emailed.")

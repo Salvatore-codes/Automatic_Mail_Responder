@@ -11,8 +11,14 @@ def normalize_dimensions(text):
         return ""
     text = text.lower()
     
-    # 1. Normalize fractions to decimals
-    # Handle mixed fractions first (e.g. 1 1/2 or 1-1/2 -> 1.5)
+    # Normalize unicode quotes/prime symbols to standard double/single quotes
+    text = re.sub(r'[\u2018\u2019\u201A\u201B]', "'", text)
+    text = re.sub(r'[\u201C\u201D\u201E\u201F\u2033\u2036\u02BA]', '"', text)
+    
+    # Normalize multiplication signs
+    text = re.sub(r'\s*[×\u00D7\*]\s*', ' x ', text)
+    
+    # Normalize mixed fractions (e.g. 1 1/2 or 1-1/2 -> 1.5)
     text = re.sub(r'\b(\d+)\s+1/2\b', lambda m: str(float(m.group(1)) + 0.5), text)
     text = re.sub(r'\b(\d+)-1/2\b', lambda m: str(float(m.group(1)) + 0.5), text)
     text = re.sub(r'\b(\d+)\s+3/4\b', lambda m: str(float(m.group(1)) + 0.75), text)
@@ -27,16 +33,44 @@ def normalize_dimensions(text):
     text = re.sub(r'\b3/8\b', '0.375', text)
     text = re.sub(r'\b5/8\b', '0.625', text)
     
-    # 2. Normalize inch indicators (double quotes, single quotes, inch, inches, in) following a number
+    # Normalize inch indicators following a number to 'inch'
     text = re.sub(r'(\d+(?:\.\d+)?)\s*(?:"|\'\'|inch|inches|-inch|\bin\b)', r'\1 inch', text)
     
-    # 3. Normalize mm indicators following a number
-    text = re.sub(r'(\d+(?:\.\d+)?)\s*(?:mm|millimeter|millimeters|-mm)\b', r'\1mm', text)
+    # Normalize mm indicators following a number to 'mm' (with space before it for tokenization)
+    text = re.sub(r'(\d+(?:\.\d+)?)\s*(?:mm|millimeter|millimeters|-mm)\b', r'\1 mm', text)
     
-    # 4. Normalize dimension multiplication symbol (x, *, -)
-    text = re.sub(r'\b(m\d+)\s*[\*x\-]\s*(\d+)\b', r'\1 x \2', text)
-    text = re.sub(r'\b(\d+(?:\.\d+)?)\s*[\*x\-]\s*(\d+(?:\.\d+)?)\b', r'\1 x \2', text)
+    # Normalize M-style dimensions like M8+50, M8-50, m 8+50, m8 x 50, etc.
+    # We want them to become 'm8 x 50'
+    text = re.sub(r'\bm\s*(\d+)\s*[+x\-]?\s*(\d+)\b', r'm\1 x \2', text)
     
+    # Replace hyphens/dashes with spaces to facilitate tokenization
+    text = re.sub(r'[-–—]', ' ', text)
+    
+    # Stemming / Suffix normalization of common words to ensure exact matching
+    text = re.sub(r'\bthreaded\b', 'thread', text)
+    text = re.sub(r'\bwiring\b', 'wire', text)
+    text = re.sub(r'\bcables\b', 'cable', text)
+    text = re.sub(r'\bbolts\b', 'bolt', text)
+    text = re.sub(r'\bnuts\b', 'nut', text)
+    text = re.sub(r'\bwashers\b', 'washer', text)
+    text = re.sub(r'\bscrews\b', 'screw', text)
+    text = re.sub(r'\bpliers\b', 'plier', text)
+    text = re.sub(r'\bwrenches\b', 'wrench', text)
+    text = re.sub(r'\bvalves\b', 'valve', text)
+    text = re.sub(r'\bpipes\b', 'pipe', text)
+    text = re.sub(r'\bfittings\b', 'fitting', text)
+    text = re.sub(r'\bconnectors\b', 'connector', text)
+    text = re.sub(r'\bgaskets\b', 'gasket', text)
+    text = re.sub(r'\bstaples\b', 'staple', text)
+    text = re.sub(r'\bblades\b', 'blade', text)
+    text = re.sub(r'\bstraps\b', 'strap', text)
+    
+    # Strip any trailing punctuation (like comma, semicolon, dash, etc.) and whitespace
+    text = re.sub(r'[-–—,;\s]+$', '', text)
+    text = re.sub(r'^\s*[-–—,;\s]+', '', text)
+    
+    # Clean multiple spaces
+    text = re.sub(r'\s+', ' ', text).strip()
     return text
 
 def tokenize(text):
@@ -77,8 +111,9 @@ class SimpleTFIDF:
 
 
 class Catalog:
-    def __init__(self, csv_path):
+    def __init__(self, csv_path, tenant_id=None):
         self.csv_path = csv_path
+        self.tenant_id = tenant_id
         self.skus = []
         self.load_catalog()
         
@@ -131,11 +166,11 @@ class Catalog:
         # Merge from SQLite database
         try:
             from src.database_sqlite import get_synonyms_from_db
-            db_synonyms = get_synonyms_from_db()
+            db_synonyms = get_synonyms_from_db(tenant_id=self.tenant_id)
             for k, v in db_synonyms.items():
                 self.synonyms[k] = v
         except Exception as e:
-            print(f"[Warning] Failed to sync synonyms from SQLite: {e}")
+            print(f"[Warning] Failed to sync synonyms from SQLite for tenant {self.tenant_id}: {e}")
                 
     def register_synonym(self, query, sku_id):
         clean_q = query.lower().strip()
@@ -151,13 +186,24 @@ class Catalog:
         # Save to SQLite database
         try:
             from src.database_sqlite import log_synonym
-            log_synonym(clean_q, sku_id)
+            log_synonym(clean_q, sku_id, tenant_id=self.tenant_id)
         except Exception as e:
-            print(f"[Warning] Failed to save synonym to SQLite: {e}")
+            print(f"[Warning] Failed to save synonym to SQLite for tenant {self.tenant_id}: {e}")
 
     def check_synonyms(self, query):
         clean_q = query.lower().strip()
         
+        # 0. Check if query matches or contains any SKU ID (ignoring dashes)
+        for sku in self.skus:
+            sku_id_clean = sku['sku_id'].lower().replace('-', ' ').strip()
+            q_clean = clean_q.replace('-', ' ').strip()
+            if q_clean == sku_id_clean or re.search(r'\b' + re.escape(sku_id_clean) + r'\b', q_clean):
+                return [{
+                    "sku": sku,
+                    "score": 100.0,
+                    "method": "Exact SKU ID Match"
+                }]
+                
         # 1. Exact match first
         if clean_q in self.synonyms:
             sku_id = self.synonyms[clean_q]

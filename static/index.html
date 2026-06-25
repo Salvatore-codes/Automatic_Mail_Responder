@@ -407,7 +407,14 @@
                 <h1>TROFEO Ingestion Dashboard</h1>
                 <p>Fully Functional Client-Server SKU matching quotation engine</p>
             </div>
-            <div class="badge-live">Server Connected</div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="form-group" style="margin-bottom: 0; min-width: 200px;">
+                    <select id="tenantSelect" style="background-color: var(--bg-card); border-color: var(--border-color); padding: 0.5rem 1rem; border-radius: 10px; color: var(--text-primary); outline: none;">
+                        <!-- Dynamically filled -->
+                    </select>
+                </div>
+                <div class="badge-live">Server Connected</div>
+            </div>
         </header>
         
         <!-- Main Layout -->
@@ -696,11 +703,13 @@ let me know price thx`;
             if (rawText.includes("Subject:")) inputType = "email";
             else if (rawText.includes("hi bro")) inputType = "whatsapp";
 
+            const selectedTenant = document.getElementById('tenantSelect').value;
             const payload = {
                 text: rawText,
                 engine: selectedEngine,
                 customer_email: crmSelect.value,
-                input_type: inputType
+                input_type: inputType,
+                tenant_id: selectedTenant
             };
 
             try {
@@ -854,13 +863,14 @@ let me know price thx`;
 
         async function selectHitlOption(skuId, skuName, price) {
             const line = matchedLines[currentlyFlaggedLineIdx];
+            const selectedTenant = document.getElementById('tenantSelect').value;
             
             // 1. Post to Server /api/hitl/confirm
             try {
                 const resp = await fetch('/api/hitl/confirm', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: line.parsed_query, sku_id: skuId })
+                    body: JSON.stringify({ query: line.parsed_query, sku_id: skuId, tenant_id: selectedTenant })
                 });
                 
                 if (!resp.ok) throw new Error("Failed to confirm hitl on server.");
@@ -893,11 +903,13 @@ let me know price thx`;
             loader.style.display = 'flex';
             loaderStatus.innerText = "Compiling ReportLab PDF quotation document...";
 
+            const selectedTenant = document.getElementById('tenantSelect').value;
             const payload = {
                 matched_lines: matchedLines,
                 discount_pct: discountPct,
                 customer_name: customerName,
-                invoice_id: invoiceId
+                invoice_id: invoiceId,
+                tenant_id: selectedTenant
             };
 
             try {
@@ -953,13 +965,15 @@ let me know price thx`;
 
             // Call /api/negotiate endpoint
             try {
+                const selectedTenant = document.getElementById('tenantSelect').value;
                 const response = await fetch('/api/negotiate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         customer_message: text,
                         requested_discount: requested,
-                        chat_history: chatHistory
+                        chat_history: chatHistory,
+                        tenant_id: selectedTenant
                     })
                 });
 
@@ -1041,6 +1055,40 @@ let me know price thx`;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
+
+        // Multi-tenant initialization
+        const tenantSelect = document.getElementById('tenantSelect');
+        
+        async function loadTenants() {
+            try {
+                const res = await fetch('/api/tenants');
+                if (res.ok) {
+                    const list = await res.json();
+                    tenantSelect.innerHTML = '';
+                    list.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.textContent = t.name;
+                        tenantSelect.appendChild(opt);
+                    });
+                    
+                    const saved = localStorage.getItem('selected_tenant');
+                    if (saved && list.some(t => t.id === saved)) {
+                        tenantSelect.value = saved;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load tenants:", err);
+            }
+        }
+        
+        tenantSelect.addEventListener('change', () => {
+            localStorage.setItem('selected_tenant', tenantSelect.value);
+            clearDashboard();
+        });
+
+        // Load tenants on start
+        loadTenants();
     </script>
 </body>
 </html>

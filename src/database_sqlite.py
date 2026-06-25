@@ -6,14 +6,40 @@ import datetime
 DB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 DB_PATH = os.path.join(DB_DIR, "trofeo_sales.db")
 
-def get_connection():
+INITIALIZED_DBS = set()
+
+def get_connection(tenant_id=None):
+    from src.tenants import sanitize_tenant_id
+    t_id = sanitize_tenant_id(tenant_id)
+    
     os.makedirs(DB_DIR, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    if t_id and t_id != "default":
+        db_path = os.path.join(DB_DIR, f"sales_{t_id}.db")
+    else:
+        db_path = DB_PATH
+        
+    db_key = t_id
+    if db_key not in INITIALIZED_DBS:
+        INITIALIZED_DBS.add(db_key)
+        # Create connection, set WAL mode, and run initialization
+        conn = sqlite3.connect(db_path, timeout=30.0)
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+        except Exception:
+            pass
+        conn.row_factory = sqlite3.Row
+        init_db_conn(conn)
+        conn.close()
+        
+    conn = sqlite3.connect(db_path, timeout=30.0)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except Exception:
+        pass
     conn.row_factory = sqlite3.Row
     return conn
 
-def init_db():
-    conn = get_connection()
+def init_db_conn(conn):
     cursor = conn.cursor()
     
     # 1. Quotations table
@@ -97,11 +123,23 @@ def init_db():
         except sqlite3.OperationalError:
             pass  # Column already exists
     
+    # 6. Processed messages table to track processed emails by Message-ID
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS processed_messages (
+        message_id TEXT PRIMARY KEY,
+        invoice_id TEXT,
+        processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
     conn.commit()
+
+def init_db(tenant_id=None):
+    conn = get_connection(tenant_id)
     conn.close()
- 
-def log_quotation(invoice_id, customer_name, customer_email, customer_phone, subtotal, discount_pct, tax_amt, grand_total, status):
-    conn = get_connection()
+
+def log_quotation(invoice_id, customer_name, customer_email, customer_phone, subtotal, discount_pct, tax_amt, grand_total, status, tenant_id=None):
+    conn = get_connection(tenant_id)
     cursor = conn.cursor()
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
@@ -113,8 +151,8 @@ def log_quotation(invoice_id, customer_name, customer_email, customer_phone, sub
     conn.commit()
     conn.close()
 
-def log_quotation_item(invoice_id, sku_id, sku_name, quantity, unit_price, line_total):
-    conn = get_connection()
+def log_quotation_item(invoice_id, sku_id, sku_name, quantity, unit_price, line_total, tenant_id=None):
+    conn = get_connection(tenant_id)
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -125,8 +163,8 @@ def log_quotation_item(invoice_id, sku_id, sku_name, quantity, unit_price, line_
     conn.commit()
     conn.close()
 
-def log_chat_msg(invoice_id, sender, message):
-    conn = get_connection()
+def log_chat_msg(invoice_id, sender, message, tenant_id=None):
+    conn = get_connection(tenant_id)
     cursor = conn.cursor()
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
@@ -138,8 +176,8 @@ def log_chat_msg(invoice_id, sender, message):
     conn.commit()
     conn.close()
 
-def update_quotation_status(invoice_id, status, discount_pct=None):
-    conn = get_connection()
+def update_quotation_status(invoice_id, status, discount_pct=None, tenant_id=None):
+    conn = get_connection(tenant_id)
     cursor = conn.cursor()
     
     if discount_pct is not None:
@@ -164,8 +202,8 @@ def update_quotation_status(invoice_id, status, discount_pct=None):
     conn.commit()
     conn.close()
 
-def log_synonym(query, sku_id):
-    conn = get_connection()
+def log_synonym(query, sku_id, tenant_id=None):
+    conn = get_connection(tenant_id)
     cursor = conn.cursor()
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
@@ -177,8 +215,8 @@ def log_synonym(query, sku_id):
     conn.commit()
     conn.close()
 
-def get_synonyms_from_db():
-    conn = get_connection()
+def get_synonyms_from_db(tenant_id=None):
+    conn = get_connection(tenant_id)
     cursor = conn.cursor()
     
     cursor.execute("SELECT query, sku_id FROM synonyms")
@@ -191,13 +229,13 @@ def get_synonyms_from_db():
     conn.close()
     return synonyms
 
-def log_unmatched_item(customer_email, customer_name, original_body, source="unknown"):
+def log_unmatched_item(customer_email, customer_name, original_body, source="unknown", tenant_id=None):
     """
     Logs an enquiry that the bot could not match to any catalogue SKU.
     The full original body (which may contain text extracted from attachments)
     is stored so the master can review and quote manually.
     """
-    conn = get_connection()
+    conn = get_connection(tenant_id)
     cursor = conn.cursor()
     cursor.execute("""
     INSERT INTO unmatched_items (customer_email, customer_name, original_body, source)
@@ -206,9 +244,9 @@ def log_unmatched_item(customer_email, customer_name, original_body, source="unk
     conn.commit()
     conn.close()
 
-def get_all_unmatched_items(limit=100):
+def get_all_unmatched_items(limit=100, tenant_id=None):
     """Returns recent unmatched enquiries for use in reports and the dashboard."""
-    conn = get_connection()
+    conn = get_connection(tenant_id)
     cursor = conn.cursor()
     cursor.execute("""
         SELECT id, customer_email, customer_name, original_body, source, created_at
@@ -221,14 +259,38 @@ def get_all_unmatched_items(limit=100):
     conn.close()
     return items
 
-def get_unmatched_items_count():
+def get_unmatched_items_count(tenant_id=None):
     """Returns count of unmatched enquiries for dashboard stats."""
-    conn = get_connection()
+    conn = get_connection(tenant_id)
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) as cnt FROM unmatched_items")
     row = cursor.fetchone()
     conn.close()
     return row["cnt"] if row else 0
 
-# Initialize DB on import
+def is_message_processed(message_id, tenant_id=None):
+    """Checks if a given Message-ID has already been processed."""
+    if not message_id:
+        return False
+    conn = get_connection(tenant_id)
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM processed_messages WHERE message_id = ?", (message_id.strip(),))
+    row = cursor.fetchone()
+    conn.close()
+    return row is not None
+
+def log_processed_message(message_id, invoice_id, tenant_id=None):
+    """Logs a processed Message-ID mapping it to the quotation sequence number."""
+    if not message_id:
+        return
+    conn = get_connection(tenant_id)
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT OR REPLACE INTO processed_messages (message_id, invoice_id)
+    VALUES (?, ?)
+    """, (message_id.strip(), invoice_id))
+    conn.commit()
+    conn.close()
+
+# Initialize default DB on import
 init_db()

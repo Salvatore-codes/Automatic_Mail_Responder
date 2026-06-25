@@ -72,10 +72,10 @@ def _register_unicode_fonts():
 
 _register_unicode_fonts()
 
-def generate_qr_img(amount, invoice_id, temp_path):
-    # UPI deep link dynamically configured via environment variables
-    upi_id = os.environ.get("UPI_ID", "merchant@bank")
-    upi_name = os.environ.get("UPI_MERCHANT_NAME", "TrofHardware")
+def generate_qr_img(amount, invoice_id, temp_path, upi_id=None, upi_name=None):
+    # UPI deep link dynamically configured via environment variables or parameters
+    upi_id = upi_id or os.environ.get("UPI_ID", "merchant@bank")
+    upi_name = upi_name or os.environ.get("UPI_MERCHANT_NAME", "TrofHardware")
     upi_name_esc = upi_name.replace(" ", "%20")
     link = f"upi://pay?pa={upi_id}&pn={upi_name_esc}&am={amount:.2f}&cu=INR&tn={invoice_id}"
     qr = qrcode.QRCode(box_size=6, border=1)
@@ -115,7 +115,7 @@ def find_company_logo(project_root):
                 
     return None
 
-def generate_pdf_quotation(matched_lines, discount_pct, customer_name, invoice_id, output_path, catalog=None, customer_phone="—"):
+def generate_pdf_quotation(matched_lines, discount_pct, customer_name, invoice_id, output_path, catalog=None, customer_phone="—", upi_id=None, upi_name=None, logo_path=None, business_name=None):
     # 1. Create Directories if they don't exist
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
@@ -228,15 +228,27 @@ def generate_pdf_quotation(matched_lines, discount_pct, customer_name, invoice_i
 
     # Top Header Table (Logo + Title)
     project_root = os.path.dirname(os.path.dirname(output_path))
-    logo_path = find_company_logo(project_root)
+    
+    # Resolve tenant logo path
+    if logo_path:
+        if not os.path.isabs(logo_path):
+            resolved_logo_path = os.path.join(project_root, logo_path)
+        else:
+            resolved_logo_path = logo_path
+        if os.path.exists(resolved_logo_path):
+            logo_img_path = resolved_logo_path
+        else:
+            logo_img_path = find_company_logo(project_root)
+    else:
+        logo_img_path = find_company_logo(project_root)
     
     title_flow = []
-    business_name = os.environ.get("BUSINESS_NAME", "TROFEO SOLUTION")
-    title_flow.append(Paragraph(business_name.upper(), title_style))
+    bus_name = business_name or os.environ.get("BUSINESS_NAME", "TROFEO SOLUTION")
+    title_flow.append(Paragraph(bus_name.upper(), title_style))
     title_flow.append(Paragraph(f"Price Quotation  |  Ref: {invoice_id}  |  Prepared for: {html.escape(customer_name)}", subtitle_style))
     
-    if logo_path:
-        logo_img = Image(logo_path, width=120, height=45)
+    if logo_img_path:
+        logo_img = Image(logo_img_path, width=120, height=45)
         header_table = Table([[title_flow, logo_img]], colWidths=[380, 140])
         header_table.setStyle(TableStyle([
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -299,7 +311,7 @@ def generate_pdf_quotation(matched_lines, discount_pct, customer_name, invoice_i
     
     # Generate and draw QR (larger size: width=110, height=110)
     temp_qr_path = output_path.replace(".pdf", "_qr.png")
-    generate_qr_img(grand_total, invoice_id, temp_qr_path)
+    generate_qr_img(grand_total, invoice_id, temp_qr_path, upi_id=upi_id, upi_name=upi_name)
     qr_img = Image(temp_qr_path, width=110, height=110)
 
     # 4. Prices table layout (placed on the right side of the page)
@@ -347,9 +359,9 @@ def generate_pdf_quotation(matched_lines, discount_pct, customer_name, invoice_i
 
     # Add company logo in footer (below note)
     footer_logo_flow = []
-    if logo_path:
+    if logo_img_path:
         try:
-            footer_logo = Image(logo_path, width=100, height=38)
+            footer_logo = Image(logo_img_path, width=100, height=38)
             footer_logo_flow.append(Spacer(1, 10))
             footer_logo_flow.append(footer_logo)
         except Exception:

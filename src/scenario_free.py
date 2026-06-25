@@ -1,32 +1,5 @@
 import re
-from src.database import Catalog
-
-def normalize_dimensions(text):
-    """
-    Normalizes special characters that appear in product specifications:
-    - Inch symbols: 1" or 1’’ or 1in or 1inch → '1 inch'
-    - Dimension separator: 12×24 or 12x24 → '12x24'
-    - Float/decimal values: 1.5 mm, 0.5 inch stay as-is
-    - Fraction dimensions: 1/2 inch, 3/4" → normalized
-    Returns normalized text.
-    """
-    # Normalize fancy inch/quote symbols to standard double-quote
-    text = re.sub(r'[\u2018\u2019\u201A\u201B]', "'", text)  # smart single quotes → '
-    text = re.sub(r'[\u201C\u201D\u201E\u201F\u2033\u2036\u02BA]', '"', text)  # smart double/prime → "
-    
-    # Convert 1" / 1.5" / 1/2" → "1 inch" / "1.5 inch" / "1/2 inch"
-    text = re.sub(r'(\d+(?:[./]\d+)?)\s*(?:"|\u2033|\u201D|in\b|inch\b)', r'\1 inch', text, flags=re.IGNORECASE)
-    
-    # Normalize × (multiplication sign) to x for dimensions
-    text = re.sub(r'\s*[×\u00D7]\s*', 'x', text)
-    
-    # Normalize mm/cm/m spacing
-    text = re.sub(r'(\d+(?:\.\d+)?)\s*(mm|cm|m|ft|inches?)\b', r'\1 \2', text, flags=re.IGNORECASE)
-    
-    # Normalize multiple spaces
-    text = re.sub(r'\s+', ' ', text).strip()
-    
-    return text
+from src.database import Catalog, normalize_dimensions
 
 
 def parse_order_text_rules(text):
@@ -37,7 +10,12 @@ def parse_order_text_rules(text):
     extracted_items = []
     
     # List of keywords to ignore as they are common conversational phrases
-    ignore_keywords = ["hi bro", "dear sales", "regards", "best regards", "subject:", "sales team", "urgently", "delivery today", "let me know", "price thx"]
+    ignore_keywords = [
+        "hi bro", "dear sales", "regards", "best regards", "subject:", "sales team", 
+        "urgently", "delivery today", "let me know", "price thx", "remove all", "want you to", 
+        "provide me with", "respectively", "attachment", "thank you", "please find", 
+        "pricing details", "quote request", "enquiry", "inquiry"
+    ]
     
     for line in lines:
         line_clean = line.strip()
@@ -56,9 +34,6 @@ def parse_order_text_rules(text):
         item_text = re.sub(r'^[•\-\*\s]+', '', line_clean).strip()
         # Remove leading numbered list prefix like "1." or "1)" or "1:"
         item_text = re.sub(r'^\d+[.):]\s*', '', item_text).strip()
-
-        # Normalize dimension/special characters (inch symbols, ×, etc.)
-        item_text = normalize_dimensions(item_text)
 
         # Clean common introductory phrases at the start of the line (case-insensitive)
         intro_prefixes = [
@@ -89,22 +64,41 @@ def parse_order_text_rules(text):
         qty = 1
         product_query = item_text
         
-        # 1. Look for quantity patterns at start (e.g. "12 brass elbow", "50 hex bolts")
-        match_start = re.match(r'^(\d+)\s*(?:x|units|rolls|pcs|pieces|cans|lengths|boxes|bottles)?\s+(.+)', item_text, re.IGNORECASE)
+        # 1. Look for quantity patterns at start (e.g. "12, brass elbow", "50 x hex bolts", "10.5 mts teflon")
+        match_start = re.match(r'^(\d+(?:\.\d+)?)[,\s]*(?:x|units?|rolls?|pcs?|pieces?|cans?|lengths?|boxes?|bottles?|counts?|nos?|numbers?|qty|packet|pack|pkt|bags?|mts?|meters?|mtrs?)\s+(.+)', item_text, re.IGNORECASE)
+        if not match_start:
+            # Fallback to pure digit start if followed by spaces/words
+            match_start = re.match(r'^(\d+(?:\.\d+)?)[,\s]+\s*(.+)', item_text, re.IGNORECASE)
         
-        # 2. Look for quantity patterns at end (e.g. "brass elbow - 15 units", "hex bolts 100 pcs")
-        match_end = re.search(r'\b[-–—]?\s*(\d+)\s*(?:units|rolls|pcs|pieces|cans|lengths|boxes|bottles|cans)?\s*$', item_text, re.IGNORECASE)
+        # 2. Look for quantity patterns at end (e.g. "brass elbow - 15 units", "hex bolts 100 pcs", "tape - 10.5 mts")
+        match_end = re.search(r'\b[-–—]?\s*(\d+(?:\.\d+)?)\s*(?:units?|rolls?|pcs?|pieces?|cans?|lengths?|boxes?|bottles?|counts?|nos?|numbers?|qty|packet|pack|pkt|bags?|mts?|meters?|mtrs?)\s*$', item_text, re.IGNORECASE)
+        if not match_end:
+            # Fallback to pure digit end
+            match_end = re.search(r'\b[-–—]?\s*(\d+(?:\.\d+)?)\s*$', item_text, re.IGNORECASE)
         
         if match_start:
-            qty = int(match_start.group(1))
+            try:
+                val = float(match_start.group(1))
+                qty = int(val) if val.is_integer() else val
+            except ValueError:
+                qty = 1
             product_query = match_start.group(2).strip()
         elif match_end:
-            qty = int(match_end.group(1))
+            try:
+                val = float(match_end.group(1))
+                qty = int(val) if val.is_integer() else val
+            except ValueError:
+                qty = 1
             # Remove quantity suffix from the product query
             product_query = item_text[:match_end.start()].strip()
-            # Clean up trailing dashes
-            product_query = re.sub(r'[-–—]$', '', product_query).strip()
             
+        # Clean leading/trailing punctuation before normalization
+        product_query = re.sub(r'^[-–—,;\s]+', '', product_query)
+        product_query = re.sub(r'[-–—,;\s]+$', '', product_query).strip()
+        
+        # Normalize product_query dimensions/special characters AFTER quantity parsing
+        product_query = normalize_dimensions(product_query)
+        
         # Clean up generic helper words
         product_query = re.sub(r'\b(need|some|stuff|rolls of|cans of|lengths of|size|joints|and also matching)\b', '', product_query, flags=re.IGNORECASE)
         product_query = re.sub(r'\s+', ' ', product_query).strip()
@@ -124,7 +118,8 @@ def run_scenario_free(order_text, catalog):
     Runs the complete Scenario A pipeline:
     1. Parse raw text into search queries and quantities.
     2. Run fuzzy string similarity & TF-IDF search on the catalog.
-    3. Generate the best match for each line.
+    3. Secondary description-matching pass for low-confidence candidates.
+    4. Generate the best match for each line.
     """
     parsed_items = parse_order_text_rules(order_text)
     matched_lines = []
@@ -133,52 +128,33 @@ def run_scenario_free(order_text, catalog):
         query = item['parsed_query']
         qty = item['quantity']
         
-        # Get candidates from Fuzzy matching with high threshold (80)
         fuzzy_candidates = catalog.match_fuzzy(query, threshold=80, limit=3)
-        # Get candidates from Local TF-IDF semantic matching
         tfidf_candidates = catalog.match_local_semantic(query, limit=3)
         
-        # Combine lists and pick the best match
         combined = {}
-        
-        for cand in fuzzy_candidates:
+        for cand in fuzzy_candidates + tfidf_candidates:
             sku_id = cand['sku']['sku_id']
-            combined[sku_id] = {
-                "sku": cand['sku'],
-                "score": cand['score'],
-                "method": "Fuzzy Match"
-            }
-            
-        for cand in tfidf_candidates:
-            sku_id = cand['sku']['sku_id']
+            score = cand['score']
             if sku_id in combined:
-                combined[sku_id]['score'] = max(combined[sku_id]['score'], cand['score'])
-                combined[sku_id]['method'] = "Fuzzy + Semantic"
+                combined[sku_id]['score'] = max(combined[sku_id]['score'], score)
             else:
-                combined[sku_id] = {
-                    "sku": cand['sku'],
-                    "score": cand['score'],
-                    "method": "Local TF-IDF Match"
-                }
+                combined[sku_id] = {'sku': cand['sku'], 'score': score}
                 
-        # Sort combined candidates by score descending
         sorted_candidates = sorted(combined.values(), key=lambda x: x['score'], reverse=True)
         
-        # Enforce minimum matching score of 80.0% (nearing 90%)
         if sorted_candidates and sorted_candidates[0]['score'] >= 80.0:
-            best_match = sorted_candidates[0]
+            best = sorted_candidates[0]
             matched_lines.append({
                 "original_line": item['original_line'],
                 "parsed_query": query,
                 "quantity": qty,
-                "matched_sku_id": best_match['sku']['sku_id'],
-                "matched_sku_name": best_match['sku']['sku_name'],
-                "unit_price": best_match['sku']['price'],
-                "confidence": best_match['score'],
-                "match_method": best_match['method']
+                "matched_sku_id": best['sku']['sku_id'],
+                "matched_sku_name": best['sku']['sku_name'],
+                "unit_price": best['sku']['price'],
+                "confidence": best['score'],
+                "match_method": "Semantic/Fuzzy"
             })
         else:
-            # No match found or score below threshold
             matched_lines.append({
                 "original_line": item['original_line'],
                 "parsed_query": query,
