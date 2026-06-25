@@ -6,8 +6,44 @@ import json
 from rapidfuzz import process, fuzz
 
 # A lightweight pure-Python TF-IDF system for local semantic-like matching
+def normalize_dimensions(text):
+    if not text:
+        return ""
+    text = text.lower()
+    
+    # 1. Normalize fractions to decimals
+    # Handle mixed fractions first (e.g. 1 1/2 or 1-1/2 -> 1.5)
+    text = re.sub(r'\b(\d+)\s+1/2\b', lambda m: str(float(m.group(1)) + 0.5), text)
+    text = re.sub(r'\b(\d+)-1/2\b', lambda m: str(float(m.group(1)) + 0.5), text)
+    text = re.sub(r'\b(\d+)\s+3/4\b', lambda m: str(float(m.group(1)) + 0.75), text)
+    text = re.sub(r'\b(\d+)-3/4\b', lambda m: str(float(m.group(1)) + 0.75), text)
+    text = re.sub(r'\b(\d+)\s+1/4\b', lambda m: str(float(m.group(1)) + 0.25), text)
+    text = re.sub(r'\b(\d+)-1/4\b', lambda m: str(float(m.group(1)) + 0.25), text)
+    
+    # Simple fractions
+    text = re.sub(r'\b1/2\b', '0.5', text)
+    text = re.sub(r'\b3/4\b', '0.75', text)
+    text = re.sub(r'\b1/4\b', '0.25', text)
+    text = re.sub(r'\b3/8\b', '0.375', text)
+    text = re.sub(r'\b5/8\b', '0.625', text)
+    
+    # 2. Normalize inch indicators (double quotes, single quotes, inch, inches, in) following a number
+    text = re.sub(r'(\d+(?:\.\d+)?)\s*(?:"|\'\'|inch|inches|-inch|\bin\b)', r'\1 inch', text)
+    
+    # 3. Normalize mm indicators following a number
+    text = re.sub(r'(\d+(?:\.\d+)?)\s*(?:mm|millimeter|millimeters|-mm)\b', r'\1mm', text)
+    
+    # 4. Normalize dimension multiplication symbol (x, *, -)
+    text = re.sub(r'\b(m\d+)\s*[\*x\-]\s*(\d+)\b', r'\1 x \2', text)
+    text = re.sub(r'\b(\d+(?:\.\d+)?)\s*[\*x\-]\s*(\d+(?:\.\d+)?)\b', r'\1 x \2', text)
+    
+    return text
+
 def tokenize(text):
-    return re.findall(r'\b\w+\b', text.lower())
+    normalized = normalize_dimensions(text)
+    # Allow float values (like 0.5 or 1.5) by using \b\w+(?:\.\d+)?\b
+    return re.findall(r'\b\w+(?:\.\d+)?\b', normalized)
+
 
 class SimpleTFIDF:
     def __init__(self, documents):
@@ -166,15 +202,16 @@ class Catalog:
         if syn_match:
             return syn_match
             
+        q_norm = normalize_dimensions(query)
+        
         results = []
         for sku in self.skus:
-            q_lower = query.lower()
-            name_lower = sku['sku_name'].lower()
-            desc_lower = sku['description'].lower()
+            name_norm = normalize_dimensions(sku['sku_name'])
+            desc_norm = normalize_dimensions(sku['description'])
             
-            score_name_sort = fuzz.token_sort_ratio(q_lower, name_lower)
-            score_name_set = fuzz.token_set_ratio(q_lower, name_lower)
-            score_desc = fuzz.token_set_ratio(q_lower, desc_lower)
+            score_name_sort = fuzz.token_sort_ratio(q_norm, name_norm)
+            score_name_set = fuzz.token_set_ratio(q_norm, name_norm)
+            score_desc = fuzz.token_set_ratio(q_norm, desc_norm)
             best_score = max(score_name_sort, score_name_set, score_desc)
             
             if best_score >= threshold:

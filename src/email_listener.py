@@ -685,18 +685,68 @@ def load_crm_emails(crm_path):
         return set()
 
 
+def extract_text_from_docx(docx_bytes):
+    """
+    Extracts text from DOCX bytes using standard zipfile and xml parsing.
+    """
+    import zipfile
+    import xml.etree.ElementTree as ET
+    from io import BytesIO
+    try:
+        with zipfile.ZipFile(BytesIO(docx_bytes)) as docx:
+            xml_content = docx.read('word/document.xml')
+            root = ET.fromstring(xml_content)
+            namespaces = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+            texts = []
+            for elem in root.findall('.//w:t', namespaces):
+                if elem.text:
+                    texts.append(elem.text)
+            return ' '.join(texts)
+    except Exception as e:
+        print(f"[Attachment] Error parsing docx: {e}")
+        return ""
+
+
+def has_attachments(msg):
+    """
+    Quickly scans a parsed email message to check if it has ANY attachments.
+    Does not download or decode them — just checks MIME metadata.
+    """
+    supported_extensions = (".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif",
+                            ".tiff", ".bmp", ".docx", ".txt", ".rtf", ".html",
+                            ".xml", ".csv", ".xls", ".xlsx", ".odt")
+    supported_types = (
+        "application/pdf", "image/jpeg", "image/jpg", "image/png",
+        "image/webp", "image/gif", "image/tiff", "image/bmp",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/docx", "application/x-docx",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/octet-stream"
+    )
+    for part in msg.walk():
+        content_type = part.get_content_type()
+        disposition = str(part.get("Content-Disposition", ""))
+        filename = part.get_filename() or ""
+        is_attach = "attachment" in disposition.lower() or filename != ""
+        if is_attach and (content_type in supported_types or
+                          content_type.startswith("image/") or
+                          filename.lower().endswith(supported_extensions)):
+            return True
+    return False
+
+
 def extract_text_from_attachments(msg):
     """
-    Scans all MIME parts of an email.message object for PDF or image attachments
-    and uses Gemini 2.5 Flash (multimodal) to extract text / product item lists
-    from each attachment. Returns a single concatenated string with extracted text,
-    or empty string if nothing was found or Gemini is unavailable.
+    Scans all MIME parts of an email.message object for attachments (PDF, images, Word, text format)
+    and extracts product item lists from each. Uses Gemini 2.5 Flash.
     """
     api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key or api_key.startswith("your_"):
+        print("[Attachment] GEMINI_API_KEY not configured. Cannot extract attachment content.")
         return ""
 
-    supported_mime_types = {
+    gemini_native_mimes = {
         "application/pdf": ".pdf",
         "image/jpeg": ".jpg",
         "image/jpg": ".jpg",
@@ -706,38 +756,62 @@ def extract_text_from_attachments(msg):
         "image/tiff": ".tiff",
         "image/bmp": ".bmp",
     }
+    
+    docx_mimes = {
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+        "application/docx": ".docx",
+        "application/x-docx": ".docx"
+    }
 
     extracted_texts = []
 
     for part in msg.walk():
         content_type = part.get_content_type()
         disposition = part.get("Content-Disposition", "")
+        filename = part.get_filename() or ""
 
-        # Only process actual attachments (not inline text parts)
-        is_attachment = ("attachment" in disposition.lower() or
-                         content_type in supported_mime_types)
+        # Determine if it's an attachment we support
+        is_supported = (
+            content_type in gemini_native_mimes or
+            content_type in docx_mimes or
+            content_type.startswith("text/") or
+            filename.lower().endswith((".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif", ".tiff", ".bmp", ".docx", ".txt", ".rtf", ".html", ".xml", ".csv"))
+        )
 
-        if not is_attachment or content_type not in supported_mime_types:
+        # Skip if not an attachment or not supported
+        is_attachment = "attachment" in disposition.lower() or filename != ""
+        if not is_attachment or not is_supported:
             continue
 
         payload = part.get_payload(decode=True)
         if not payload:
             continue
 
-        ext = supported_mime_types[content_type]
-        filename = part.get_filename() or f"attachment{ext}"
-        print(f"[Attachment] Detected attachment: '{filename}' ({content_type}). Sending to Gemini for text extraction.")
+        # Extract file extension for logs
+        ext = ""
+        if filename:
+            _, file_ext = os.path.splitext(filename)
+            ext = file_ext.lower()
+        else:
+            if content_type in gemini_native_mimes:
+                ext = gemini_native_mimes[content_type]
+            elif content_type in docx_mimes:
+                ext = ".docx"
+            elif content_type.startswith("text/"):
+                ext = ".txt"
 
+        display_filename = filename or f"attachment{ext}"
+        print(f"[Attachment] Detected attachment: '{display_filename}' ({content_type}). Processing text.")
+
+        # Check if it is native image/PDF vs text/word format
+        is_native_gemini = content_type in gemini_native_mimes or ext in [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif", ".tiff", ".bmp"]
+        
+        extracted = ""
         try:
             from google import genai
             from google.genai import types as genai_types
-
             client = genai.Client(api_key=api_key)
-
-            # Encode payload as inline base64 data
-            b64_data = base64.standard_b64encode(payload).decode("utf-8")
-
-            # Build a multimodal prompt asking Gemini to extract product items
+            
             prompt = (
                 "You are a purchasing document analyser. Extract ALL product names, item descriptions, "
                 "SKU codes, part numbers, quantities, and specifications mentioned in this document. "
@@ -746,30 +820,75 @@ def extract_text_from_attachments(msg):
                 "If you cannot find any product items, reply with the single word: NONE."
             )
 
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[
-                    genai_types.Part.from_bytes(
-                        data=payload,
-                        mime_type=content_type
-                    ),
-                    prompt
-                ]
-            )
+            # Retry up to 3 times for transient API errors (503, 429, 500)
+            max_retries = 3
+            extracted = ""
+            for attempt in range(1, max_retries + 1):
+                try:
+                    if is_native_gemini:
+                        # 1. Native Gemini Multimodal parsing (images, PDFs)
+                        response = client.models.generate_content(
+                            model="gemini-2.5-flash",
+                            contents=[
+                                genai_types.Part.from_bytes(
+                                    data=payload,
+                                    mime_type=content_type if content_type in gemini_native_mimes else "application/pdf"
+                                ),
+                                prompt
+                            ]
+                        )
+                        extracted = response.text.strip() if response.text else ""
+                    else:
+                        # 2. Local text extraction followed by Gemini text restructuring
+                        raw_text = ""
+                        if content_type in docx_mimes or ext == ".docx":
+                            raw_text = extract_text_from_docx(payload)
+                        else:
+                            try:
+                                raw_text = payload.decode('utf-8', errors='ignore')
+                            except Exception as de:
+                                print(f"[Attachment] Failed to decode text: {de}")
+                        
+                        if raw_text.strip():
+                            response = client.models.generate_content(
+                                model="gemini-2.5-flash",
+                                contents=(
+                                    f"You are a purchasing document analyser. Extract ALL product names, item descriptions, "
+                                    f"SKU codes, part numbers, quantities, and specifications mentioned in this text:\n\n"
+                                    f"{raw_text}\n\n"
+                                    f"Return them as a plain numbered list. Do NOT add any extra commentary or headings — "
+                                    f"just list each line item or product request exactly as written. "
+                                    f"If you cannot find any product items, reply with the single word: NONE."
+                                )
+                            )
+                            extracted = response.text.strip() if response.text else ""
+                    break  # Success — exit retry loop
 
-            extracted = response.text.strip() if response.text else ""
+                except Exception as api_err:
+                    err_str = str(api_err)
+                    is_transient = any(code in err_str for code in ["503", "429", "500", "UNAVAILABLE", "Resource has been exhausted"])
+                    if is_transient and attempt < max_retries:
+                        wait_sec = 2 ** attempt  # 2s, 4s, 8s
+                        print(f"[Attachment] Attempt {attempt}/{max_retries} failed (transient): {err_str[:80]}. Retrying in {wait_sec}s...")
+                        time.sleep(wait_sec)
+                    else:
+                        raise  # Non-transient or last attempt — bubble up
+
             if extracted and extracted.upper() != "NONE":
-                print(f"[Attachment] Extracted text from '{filename}':\n{extracted[:300]}...")
-                extracted_texts.append(f"[From attachment '{filename}']:\n{extracted}")
+                print(f"[Attachment] Extracted text from '{display_filename}':\n{extracted[:300]}...")
+                extracted_texts.append(f"[From attachment '{display_filename}']:\n{extracted}")
             else:
-                print(f"[Attachment] No product items found in '{filename}'.")
+                print(f"[Attachment] No product items found in '{display_filename}'.")
 
         except Exception as e:
-            print(f"[Attachment] Gemini extraction failed for '{filename}': {e}")
+            print(f"[Attachment] Extraction failed for '{display_filename}' after retries: {e}")
+            # Mark the attachment as failed so callers can handle it
+            extracted_texts.append(f"[ATTACHMENT_FAILED:'{display_filename}']")
 
     return "\n\n".join(extracted_texts)
 
-def is_email_relevant(sender, subject, body, catalog, crm_emails, attachment_text=""):
+
+def is_email_relevant(sender, subject, body, catalog, crm_emails, attachment_text="", email_has_attachments=False):
     """
     Checks if an incoming email is relevant to Trofeo Hardware.
     An email is relevant if:
@@ -779,6 +898,7 @@ def is_email_relevant(sender, subject, body, catalog, crm_emails, attachment_tex
     4. Body contains any SKU ID from our catalog.
     5. Body contains any of our catalog product names/keywords.
     6. Attachment text (extracted via Gemini) contains product keywords.
+    7. Email has attachments AND subject suggests product enquiry (e.g. 'product', 'attached', 'image', 'document').
     """
     sender_lower = sender.lower().strip()
     subject_lower = subject.lower().strip()
@@ -831,7 +951,24 @@ def is_email_relevant(sender, subject, body, catalog, crm_emails, attachment_tex
         if re.search(r'\b' + re.escape(pk) + r'\b', body_lower) or re.search(r'\b' + re.escape(pk) + r'\b', subject_lower):
             print(f"[Email Filter] MATCH: Message references product keyword '{pk}'.")
             return True
-            
+
+    # 6. If attachment text was extracted and contains product-relevant info, pass it through
+    if attachment_text and attachment_text.strip() and attachment_text.upper() != "NONE":
+        print(f"[Email Filter] MATCH: Attachment text extracted — treating as potential product enquiry.")
+        return True
+
+    # 7. Email has attachments AND subject suggests it is a product enquiry with document
+    #    (e.g. customer sends image/PDF of product without textual body)
+    if email_has_attachments:
+        attachment_subject_hints = [
+            "product", "item", "want", "need", "require", "attached", "attach", 
+            "image", "photo", "picture", "document", "doc", "file", "list",
+            "buy", "purchase", "order", "get", "stock", "available", "price"
+        ]
+        if any(hint in subject_lower for hint in attachment_subject_hints):
+            print(f"[Email Filter] MATCH: Email has attachment + subject hints at product enquiry ('{subject}').")
+            return True
+
     return False
 
 def send_master_notification(smtp_server, smtp_port, email_user, email_pass, master_email, subject, body_text):
@@ -857,6 +994,38 @@ def send_master_notification(smtp_server, smtp_port, email_user, email_pass, mas
         print(f"[Master Notification] Sent notification to {master_email} (Subject: {subject})")
     except Exception as e:
         print(f"[Warning] Failed to send master notification: {e}")
+
+def send_unmatched_products_alert(smtp_server, smtp_port, email_user, email_pass, master_email, customer_name, customer_email, customer_phone, original_subject, unmatched_lines):
+    """Sends an email notification to the Master/Admin when the customer requests a product not in the catalog."""
+    if not master_email or not email_user or not email_pass:
+        return
+        
+    try:
+        subject = f"[ATTENTION] Unmatched Products in Enquiry from {customer_name}"
+        
+        items_list_str = ""
+        for idx, line in enumerate(unmatched_lines, 1):
+            items_list_str += f"{idx}. Line: \"{line['original_line']}\"\n   Detected Query: \"{line['parsed_query']}\" | Qty: {line['quantity']}\n"
+            
+        body_text = (
+            f"Dear Master User,\n\n"
+            f"The auto-bot processed an enquiry from the customer. While a partial quote may have been "
+            f"generated/updated for matched items, the customer is asking for the following products "
+            f"that are NOT in our master catalog:\n\n"
+            f"{items_list_str}\n"
+            f"Customer Details:\n"
+            f"- Name: {customer_name}\n"
+            f"- Email: {customer_email}\n"
+            f"- Contact Number: {customer_phone}\n\n"
+            f"Original Enquiry Subject: {original_subject}\n\n"
+            f"Please check if you need to add these products to the catalog or contact the customer to arrange a manual quote.\n\n"
+            f"Regards,\n"
+            f"Trofeo Auto-bot"
+        )
+        
+        send_master_notification(smtp_server, smtp_port, email_user, email_pass, master_email, subject, body_text)
+    except Exception as e:
+        print(f"[Warning] Failed to send unmatched products alert: {e}")
 
 def poll_email_inbox(catalog, crm_path, mode="mock"):
     """
@@ -963,6 +1132,38 @@ def poll_email_inbox(catalog, crm_path, mode="mock"):
                         f"Trofeo Auto-bot"
                     )
                     send_master_notification(smtp_server, smtp_port, email_user, email_pass, master_email, subject_reply_notif, body_reply_notif)
+
+                # --- Handle mixed matched/unmatched items (customer asks for products not in the catalog) ---
+                if status in ["QUOTE_GENERATED", "QUOTE_UPDATED"]:
+                    matched_lines = run_scenario_free(body, catalog)
+                    unmatched_lines = [line for line in matched_lines if line['matched_sku_id'] == "UNKNOWN"]
+                    if unmatched_lines:
+                        print(f"[Unmatched Products] {len(unmatched_lines)} unmatched items found. Logging & alerting master.")
+                        try:
+                            from src.database_sqlite import log_unmatched_item
+                            unmatched_desc = "\n".join([f"{l['quantity']} x {l['parsed_query']} (original: {l['original_line']})" for l in unmatched_lines])
+                            log_unmatched_item(
+                                customer_email=sender,
+                                customer_name=sender_name,
+                                original_body=f"UNMATCHED PRODUCTS REQUESTED:\n{unmatched_desc}\n\nFULL EMAIL BODY:\n{body}",
+                                source="mock_email"
+                            )
+                        except Exception as ue:
+                            print(f"[Warning] Failed to log unmatched items: {ue}")
+
+                        if master_email and email_user and email_pass and email_user.strip() and not email_user.startswith("your_"):
+                            send_unmatched_products_alert(
+                                smtp_server=smtp_server,
+                                smtp_port=smtp_port,
+                                email_user=email_user,
+                                email_pass=email_pass,
+                                master_email=master_email,
+                                customer_name=sender_name,
+                                customer_email=email_addr if email_addr else sender,
+                                customer_phone=contact_phone,
+                                original_subject=subject,
+                                unmatched_lines=unmatched_lines
+                            )
 
                 # --- Handle UNPARSED_NOTICE: log unmatched items + alert master ---
                 if status == "UNPARSED_NOTICE":
@@ -1089,20 +1290,69 @@ def poll_email_inbox(catalog, crm_path, mode="mock"):
                     else:
                         body = msg.get_payload(decode=True).decode('utf-8', errors='ignore')
 
-                    # Extract text from PDF/image attachments via Gemini multimodal
-                    attachment_text = extract_text_from_attachments(msg)
-                    if attachment_text:
-                        body = body + "\n\n" + attachment_text
-                    
-                    # Apply unified relevance check (skips if not matched)
-                    if not is_email_relevant(sender, subject, body, catalog, crm_emails, attachment_text):
+                    # Quick check: does this email have any attachments?
+                    email_has_attach = has_attachments(msg)
+
+                    # Fast pre-filter: skip emails with no relevant signals at all
+                    # (pass email_has_attach=True to allow attachment-only emails through)
+                    if not is_email_relevant(sender, subject, body, catalog, crm_emails,
+                                             attachment_text="", email_has_attachments=email_has_attach):
                         print(f"[Email Filter] Skipped irrelevant email from {sender} (Subject: {subject})")
                         mail.store(m_id, '+FLAGS', '\\Seen')
                         continue
-                        
+
+                    # Extract text from PDF/image/Word attachments via Gemini multimodal
+                    attachment_text = extract_text_from_attachments(msg)
+
+                    # Detect if extraction failed for any attachment
+                    attach_failed = "[ATTACHMENT_FAILED:" in (attachment_text or "")
+                    clean_attach_text = "" if not attachment_text else "\n".join(
+                        line for line in attachment_text.splitlines()
+                        if not line.startswith("[ATTACHMENT_FAILED:")
+                    ).strip()
+
+                    if clean_attach_text:
+                        print(f"[Attachment] Successfully extracted text from attachments. Merging with body.")
+                        body = (body + "\n\n" + clean_attach_text).strip()
+                    elif email_has_attach:
+                        print(f"[Attachment] Email has attachments but text extraction {'partially ' if attach_failed else ''}failed.")
+
+                    # If body is STILL empty after all extraction attempts:
+                    # Don't silently skip — notify master so they can follow up manually.
                     if not body.strip():
+                        print(f"[Email Filter] Email from {sender} has no parseable text content.")
+                        master_email_addr = os.environ.get("MASTER_EMAIL")
+                        if master_email_addr and email_has_attach:
+                            # Derive sender display name
+                            from email.utils import parseaddr as _parseaddr
+                            _dname, _eaddr = _parseaddr(sender_header)
+                            _sname = _dname if _dname else (_eaddr or sender).split('@')[0]
+                            _attach_note = "The email contained attachment(s), but automatic text extraction failed" \
+                                           " (Gemini API may be temporarily unavailable or the image has no readable text)." \
+                                           " Please open the email directly and review the attachment."
+                            _notif_subj = f"[ACTION REQUIRED] Cannot auto-process attachment enquiry from {_sname}"
+                            _notif_body = (
+                                f"Dear Master User,\n\n"
+                                f"An enquiry email was received from a customer, but the system could not "
+                                f"extract readable product information from the attached file(s).\n\n"
+                                f"Customer Details:\n"
+                                f"- Name: {_sname}\n"
+                                f"- Email: {sender}\n\n"
+                                f"Email Subject: {subject}\n\n"
+                                f"Note: {_attach_note}\n\n"
+                                f"Please review the original email in your inbox and prepare a manual "
+                                f"quotation if required.\n\n"
+                                f"Regards,\n"
+                                f"Trofeo Auto-bot"
+                            )
+                            send_master_notification(
+                                smtp_server, smtp_port, email_user, email_pass,
+                                master_email_addr, _notif_subj, _notif_body
+                            )
+                            print(f"[Master Notification] Sent manual-review alert to {master_email_addr} for attachment-only email from {sender}.")
                         mail.store(m_id, '+FLAGS', '\\Seen')
                         continue
+
                         
                     print(f"\n[Processing Live Email] From: {sender} | Subject: {subject}")
                     
@@ -1198,6 +1448,38 @@ def poll_email_inbox(catalog, crm_path, mode="mock"):
                     
                     mail.store(m_id, '+FLAGS', '\\Seen')
                     print(f"[Success] Processed email from {sender} (status: {status}) and sent reply via SMTP.")
+
+                    # --- Handle mixed matched/unmatched items (customer asks for products not in the catalog) ---
+                    if status in ["QUOTE_GENERATED", "QUOTE_UPDATED"]:
+                        matched_lines = run_scenario_free(body, catalog)
+                        unmatched_lines = [line for line in matched_lines if line['matched_sku_id'] == "UNKNOWN"]
+                        if unmatched_lines:
+                            print(f"[Unmatched Products] {len(unmatched_lines)} unmatched items found. Logging & alerting master.")
+                            try:
+                                from src.database_sqlite import log_unmatched_item
+                                unmatched_desc = "\n".join([f"{l['quantity']} x {l['parsed_query']} (original: {l['original_line']})" for l in unmatched_lines])
+                                log_unmatched_item(
+                                    customer_email=sender,
+                                    customer_name=sender_name,
+                                    original_body=f"UNMATCHED PRODUCTS REQUESTED:\n{unmatched_desc}\n\nFULL EMAIL BODY:\n{body}",
+                                    source="live_email"
+                                )
+                            except Exception as ue:
+                                print(f"[Warning] Failed to log unmatched items: {ue}")
+
+                            if master_email and email_user and email_pass:
+                                send_unmatched_products_alert(
+                                    smtp_server=smtp_server,
+                                    smtp_port=smtp_port,
+                                    email_user=email_user,
+                                    email_pass=email_pass,
+                                    master_email=master_email,
+                                    customer_name=sender_name,
+                                    customer_email=sender,
+                                    customer_phone=contact_phone,
+                                    original_subject=subject,
+                                    unmatched_lines=unmatched_lines
+                                )
 
                     # --- Handle UNPARSED_NOTICE: log unmatched items + alert master ---
                     if status == "UNPARSED_NOTICE":

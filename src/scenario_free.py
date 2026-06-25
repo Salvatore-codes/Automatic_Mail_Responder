@@ -1,6 +1,34 @@
 import re
 from src.database import Catalog
 
+def normalize_dimensions(text):
+    """
+    Normalizes special characters that appear in product specifications:
+    - Inch symbols: 1" or 1’’ or 1in or 1inch → '1 inch'
+    - Dimension separator: 12×24 or 12x24 → '12x24'
+    - Float/decimal values: 1.5 mm, 0.5 inch stay as-is
+    - Fraction dimensions: 1/2 inch, 3/4" → normalized
+    Returns normalized text.
+    """
+    # Normalize fancy inch/quote symbols to standard double-quote
+    text = re.sub(r'[\u2018\u2019\u201A\u201B]', "'", text)  # smart single quotes → '
+    text = re.sub(r'[\u201C\u201D\u201E\u201F\u2033\u2036\u02BA]', '"', text)  # smart double/prime → "
+    
+    # Convert 1" / 1.5" / 1/2" → "1 inch" / "1.5 inch" / "1/2 inch"
+    text = re.sub(r'(\d+(?:[./]\d+)?)\s*(?:"|\u2033|\u201D|in\b|inch\b)', r'\1 inch', text, flags=re.IGNORECASE)
+    
+    # Normalize × (multiplication sign) to x for dimensions
+    text = re.sub(r'\s*[×\u00D7]\s*', 'x', text)
+    
+    # Normalize mm/cm/m spacing
+    text = re.sub(r'(\d+(?:\.\d+)?)\s*(mm|cm|m|ft|inches?)\b', r'\1 \2', text, flags=re.IGNORECASE)
+    
+    # Normalize multiple spaces
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    return text
+
+
 def parse_order_text_rules(text):
     """
     Scenario A Rule-based Parser: Extracts product queries and quantities using regular expressions.
@@ -15,13 +43,22 @@ def parse_order_text_rules(text):
         line_clean = line.strip()
         if not line_clean:
             continue
+
+        # Skip attachment metadata headers (e.g. "[From attachment '1000197932.jpg']:")
+        if re.match(r'^\[From attachment', line_clean, re.IGNORECASE):
+            continue
             
         # Skip conversational lines
         if any(ignore in line_clean.lower() for ignore in ignore_keywords):
             continue
             
-        # Remove list bullets or markers at start (e.g., "-", "•", "*") but keep digits
+        # Remove list bullets or markers at start (e.g., "-", "•", "*", "1.", "2.")
         item_text = re.sub(r'^[•\-\*\s]+', '', line_clean).strip()
+        # Remove leading numbered list prefix like "1." or "1)" or "1:"
+        item_text = re.sub(r'^\d+[.):]\s*', '', item_text).strip()
+
+        # Normalize dimension/special characters (inch symbols, ×, etc.)
+        item_text = normalize_dimensions(item_text)
 
         # Clean common introductory phrases at the start of the line (case-insensitive)
         intro_prefixes = [
