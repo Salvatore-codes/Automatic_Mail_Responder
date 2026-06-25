@@ -1217,15 +1217,18 @@ def send_master_notification(smtp_server, smtp_port, email_user, email_pass, mas
         msg["Subject"] = subject
         msg.attach(MIMEText(body_text, 'plain'))
         
+        # Support multiple comma-separated master emails
+        recipients = [r.strip() for r in master_email.split(",") if r.strip()]
+        
         if smtp_port == 465:
             server = smtplib.SMTP_SSL(smtp_server, smtp_port)
         else:
             server = smtplib.SMTP(smtp_server, smtp_port)
             server.starttls()
         server.login(email_user, email_pass)
-        server.sendmail(email_user, master_email, msg.as_string())
+        server.sendmail(email_user, recipients, msg.as_string())
         server.close()
-        print(f"[Master Notification] Sent notification to {master_email} (Subject: {subject})")
+        print(f"[Master Notification] Sent notification to {recipients} (Subject: {subject})")
     except Exception as e:
         print(f"[Warning] Failed to send master notification: {e}")
 
