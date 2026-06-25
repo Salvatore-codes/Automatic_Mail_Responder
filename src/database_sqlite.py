@@ -292,5 +292,36 @@ def log_processed_message(message_id, invoice_id, tenant_id=None):
     conn.commit()
     conn.close()
 
+def generate_next_invoice_id(tenant_id=None):
+    """
+    Generates the next sequential invoice ID in the format QTN-XXXXX.
+    e.g., QTN-00001, QTN-00002...
+    """
+    import time
+    conn = get_connection(tenant_id=tenant_id)
+    cursor = conn.cursor()
+    try:
+        # We search for invoice_ids starting with 'QTN-'
+        cursor.execute("SELECT invoice_id FROM quotations WHERE invoice_id LIKE 'QTN-%' ORDER BY invoice_id DESC")
+        rows = cursor.fetchall()
+        max_num = 0
+        for r in rows:
+            inv_id = r["invoice_id"]
+            try:
+                # Extract number part
+                num_part = inv_id.split("-")[1]
+                num = int(num_part)
+                if num > max_num:
+                    max_num = num
+            except Exception:
+                pass
+        next_num = max_num + 1
+        return f"QTN-{next_num:05d}"
+    except Exception:
+        # Fallback to a timestamp-based organized ID if table or query fails
+        return f"QTN-{int(time.time()) % 100000:05d}"
+    finally:
+        conn.close()
+
 # Initialize default DB on import
 init_db()

@@ -765,7 +765,8 @@ def process_incoming_email(sender, subject, body, catalog, crm_path, mode, proje
     if extracted_phone:
         customer_phone = extracted_phone
             
-    invoice_id = str(int(time.time()) % 100000)
+    from src.database_sqlite import generate_next_invoice_id
+    invoice_id = generate_next_invoice_id(tenant_id=tenant_id)
     
     has_valid_matches = matched_lines and any(
         line['matched_sku_id'] != "UNKNOWN" and line['confidence'] >= 80.0 
