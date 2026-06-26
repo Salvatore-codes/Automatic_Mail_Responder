@@ -145,6 +145,45 @@ def run_tests():
     meta_path = pdf_path.replace(".pdf", "_meta.json")
     if os.path.exists(meta_path):
         os.remove(meta_path)
+
+    # Test send_deficit_purchase_order_alert
+    print("\nRunning send_deficit_purchase_order_alert...")
+    from src.email_listener import send_deficit_purchase_order_alert
+    import src.email_listener
+    
+    captured_body = None
+    def mock_send_master_notification(smtp_server, smtp_port, email_user, email_pass, master_email, subject, body_text):
+        nonlocal captured_body
+        captured_body = body_text
+        
+    original_send = src.email_listener.send_master_notification
+    src.email_listener.send_master_notification = mock_send_master_notification
+    
+    try:
+        send_deficit_purchase_order_alert(
+            smtp_server="smtp.gmail.com",
+            smtp_port=587,
+            email_user="test@gmail.com",
+            email_pass="pass",
+            master_email="master@gmail.com",
+            customer_name="Rajarajan S",
+            customer_email="rajarajansvelora@gmail.com",
+            customer_phone="+91 90000 00000",
+            original_subject="Share this in quote",
+            deficit_lines=deficit_lines
+        )
+        
+        print("Captured Body:\n", captured_body)
+        assert captured_body is not None
+        assert "Available Qty: 4" in captured_body
+        assert "Available Qty: 0" in captured_body
+        assert "Deficit Qty: 6" in captured_body
+        assert "Deficit Qty: 15" in captured_body
+        assert "Requested Qty: 10" in captured_body
+        assert "Requested Qty: 15" in captured_body
+        print("send_deficit_purchase_order_alert assertions passed!")
+    finally:
+        src.email_listener.send_master_notification = original_send
         
     print("\n\033[92mALL TESTS PASSED SUCCESSFULLY!\033[0m")
 

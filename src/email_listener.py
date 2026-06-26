@@ -1585,14 +1585,14 @@ def send_deficit_purchase_order_alert(smtp_server, smtp_port, email_user, email_
         for idx, line in enumerate(deficit_lines, 1):
             items_list_str += (
                 f"{idx}. SKU: {line['matched_sku_id']} ({line['matched_sku_name']})\n"
-                f"   Requested Qty: {line['original_requested_qty']} | Quoted/Available Qty: {line['quantity']} | Deficit Qty: {line['deficit']}\n"
+                f"   Requested Qty: {line['original_requested_qty']} | Available Qty: {line.get('stock_avail', 0)} | Deficit Qty: {line['deficit']}\n"
             )
             
         body_text = (
             f"Dear Master User,\n\n"
             f"An enquiry was processed for the customer, but some items had insufficient stock.\n"
-            f"The customer has been quoted the on-hand (available) quantity, and notified that the "
-            f"remaining quantity will be delivered after inventory is updated.\n\n"
+            f"The customer has been notified of the available quantities, and the unavailable items "
+            f"were excluded from their quotation.\n\n"
             f"Please generate a Purchase Order (PO) to fulfill the following deficit quantities:\n\n"
             f"{items_list_str}\n"
             f"Customer Details:\n"
