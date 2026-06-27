@@ -168,14 +168,15 @@
             display: flex; align-items: center; gap: 0.75rem;
         }
         .tenant-selector {
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 0.4rem 0.8rem;
-            border-radius: 8px;
+            background: #FFFFFF;
+            border: 1px solid #CBD5E1;
+            color: #0F172A;
+            padding: 0.45rem 1rem;
+            border-radius: 10px;
             outline: none;
             font-size: 0.8rem;
             cursor: pointer;
+            font-weight: 500;
         }
         .live-indicator {
             display: flex; align-items: center; gap: 0.5rem;
@@ -310,21 +311,21 @@
             text-align: left; font-size: 0.85rem;
         }
         .data-table th {
-            padding: 0.75rem 1rem;
-            background: rgba(26, 35, 64, 0.6);
+            padding: 0.85rem 1rem;
+            background: #F1F5F9;
             color: var(--text-secondary);
-            font-size: 0.7rem;
-            font-weight: 600;
+            font-size: 0.72rem;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.06em;
             border-bottom: 1px solid var(--border-color);
         }
         .data-table td {
-            padding: 0.9rem 1rem;
-            border-bottom: 1px solid rgba(30, 43, 74, 0.5);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
         }
-        .data-table tbody tr:hover { background: rgba(99, 102, 241, 0.04); }
+        .data-table tbody tr:hover { background: rgba(0, 82, 204, 0.03); }
         .data-table tbody tr:last-child td { border-bottom: none; }
 
         /* === STATUS PILLS === */
@@ -359,11 +360,11 @@
         .btn:hover { transform: translateY(-1px); }
         .btn:active { transform: translateY(0); }
         .btn-primary {
-            background: linear-gradient(135deg, #6366F1, #8B5CF6);
+            background: linear-gradient(135deg, #0052CC, #3B82F6);
             color: white;
-            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 16px rgba(0, 82, 204, 0.2);
         }
-        .btn-primary:hover { box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45); }
+        .btn-primary:hover { box-shadow: 0 6px 20px rgba(0, 82, 204, 0.35); }
         .btn-success {
             background: linear-gradient(135deg, #059669, #10B981);
             color: white;
@@ -439,7 +440,7 @@
             cursor: pointer;
             transition: var(--transition);
         }
-        .toggle-opt.active { background: var(--accent-indigo); color: white; }
+        .toggle-opt.active { background: var(--accent-blue); color: white; }
 
         .preset-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .btn-preset {
@@ -841,7 +842,7 @@
             <!-- Input Card -->
             <div class="section-card" style="position:relative">
                 <div class="section-header">
-                    <h2><span class="icon">📩</span> Enquiry Ingestion</h2>
+                    <h2><span class="material-symbols-outlined" style="font-size:1.4rem;vertical-align:middle;margin-right:0.4rem">mail</span> Enquiry Ingestion</h2>
                 </div>
                 <div class="section-body">
                     <div class="form-group">
@@ -851,10 +852,10 @@
                     <div class="form-group">
                         <label class="form-label">Quick Presets</label>
                         <div class="preset-row">
-                            <button class="btn-preset" id="loadEmail">📧 Email</button>
-                            <button class="btn-preset" id="loadWhatsApp">💬 WhatsApp</button>
-                            <button class="btn-preset" id="loadDeficitTest">⚠️ Deficit Test</button>
-                            <button class="btn-preset" id="clearBtn">🗑️ Clear</button>
+                            <button class="btn-preset" id="loadEmail"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">mail</span> Email</button>
+                            <button class="btn-preset" id="loadWhatsApp"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">chat</span> WhatsApp</button>
+                            <button class="btn-preset" id="loadDeficitTest"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">warning</span> Deficit Test</button>
+                            <button class="btn-preset" id="clearBtn"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">delete</span> Clear</button>
                         </div>
                     </div>
                     <div class="form-group">
@@ -872,7 +873,7 @@
                             <button class="toggle-opt" id="engineB">Scenario B (Semantic AI)</button>
                         </div>
                     </div>
-                    <button class="btn btn-primary btn-full btn-lg" id="processBtn">⚡ Run Matching Pipeline</button>
+                    <button class="btn btn-primary btn-full btn-lg" id="processBtn"><span class="material-symbols-outlined" style="font-size:1.25rem;vertical-align:middle;margin-right:0.4rem">bolt</span> Run Matching Pipeline</button>
                 </div>
                 <div class="loader-overlay" id="simLoader">
                     <div class="big-spinner"></div>
@@ -885,28 +886,36 @@
                 <!-- Metrics Row -->
                 <div class="metrics-row">
                     <div class="kpi-card blue">
-                        <div class="kpi-icon">📩</div>
+                        <div class="kpi-icon">
+                            <span class="material-symbols-outlined">mail</span>
+                        </div>
                         <div class="kpi-content">
                             <span>Items Parsed</span>
                             <strong id="metricParsed">—</strong>
                         </div>
                     </div>
                     <div class="kpi-card green">
-                        <div class="kpi-icon">🎯</div>
+                        <div class="kpi-icon">
+                            <span class="material-symbols-outlined">track_changes</span>
+                        </div>
                         <div class="kpi-content">
                             <span>Match Rate</span>
                             <strong id="metricMatch">—</strong>
                         </div>
                     </div>
                     <div class="kpi-card purple">
-                        <div class="kpi-icon">⚡</div>
+                        <div class="kpi-icon">
+                            <span class="material-symbols-outlined">speed</span>
+                        </div>
                         <div class="kpi-content">
                             <span>Search Time</span>
                             <strong id="metricTime">—</strong>
                         </div>
                     </div>
                     <div class="kpi-card yellow">
-                        <div class="kpi-icon">💎</div>
+                        <div class="kpi-icon">
+                            <span class="material-symbols-outlined">payments</span>
+                        </div>
                         <div class="kpi-content">
                             <span>API Cost</span>
                             <strong id="metricCost">—</strong>
@@ -923,10 +932,10 @@
                 <!-- Results Table -->
                 <div class="section-card">
                     <div class="section-header">
-                        <h2><span class="icon">🧮</span> Match Results Matrix</h2>
+                        <h2><span class="material-symbols-outlined" style="font-size:1.4rem;vertical-align:middle;margin-right:0.4rem">grid_on</span> Match Results Matrix</h2>
                         <div class="gap-row" id="actionRow" style="display:none">
-                            <button class="btn btn-ghost btn-sm" id="negotiateOpenBtn">🤝 Negotiate</button>
-                            <button class="btn btn-primary btn-sm" id="generatePdfBtn">📄 Generate Quote PDF</button>
+                            <button class="btn btn-ghost btn-sm" id="negotiateOpenBtn"><span class="material-symbols-outlined" style="font-size:1.1rem;vertical-align:middle;margin-right:0.25rem">handshake</span> Negotiate</button>
+                            <button class="btn btn-primary btn-sm" id="generatePdfBtn"><span class="material-symbols-outlined" style="font-size:1.1rem;vertical-align:middle;margin-right:0.25rem">picture_as_pdf</span> Generate Quote PDF</button>
                         </div>
                     </div>
                     <div class="data-table-wrapper">
@@ -943,7 +952,7 @@
                                 </tr>
                             </thead>
                             <tbody id="resultsTableBody">
-                                <tr><td colspan="7" class="empty-state" style="padding:3rem 0;border:none;"><div class="es-icon">🔍</div><p class="text-muted">Run the pipeline to see results here.</p></td></tr>
+                                <tr><td colspan="7" class="empty-state" style="padding:3rem 0;border:none;"><div class="es-icon"><span class="material-symbols-outlined" style="font-size:3.5rem;opacity:0.35">search</span></div><p class="text-muted">Run the pipeline to see results here.</p></td></tr>
                             </tbody>
                         </table>
                     </div>
