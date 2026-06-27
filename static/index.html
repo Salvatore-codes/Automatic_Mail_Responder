@@ -469,17 +469,9 @@
 
         .metrics-row {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 0.75rem;
+            grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+            gap: 1.25rem;
         }
-        .metric-box {
-            background: var(--bg-card2);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 0.85rem 1rem;
-        }
-        .metric-box span { font-size: 0.7rem; color: var(--text-secondary); }
-        .metric-box strong { font-family: var(--font-display); font-size: 1.35rem; display: block; margin-top: 0.15rem; }
 
         .hitl-warn {
             background: rgba(245,158,11,0.08);
@@ -906,10 +898,34 @@
             <div class="results-box">
                 <!-- Metrics Row -->
                 <div class="metrics-row">
-                    <div class="metric-box"><span>Items Parsed</span><strong id="metricParsed">—</strong></div>
-                    <div class="metric-box"><span>Match Rate</span><strong id="metricMatch">—</strong></div>
-                    <div class="metric-box"><span>Search Time</span><strong id="metricTime">—</strong></div>
-                    <div class="metric-box"><span>API Cost</span><strong id="metricCost">—</strong></div>
+                    <div class="kpi-card blue">
+                        <div class="kpi-icon">📩</div>
+                        <div class="kpi-content">
+                            <span>Items Parsed</span>
+                            <strong id="metricParsed">—</strong>
+                        </div>
+                    </div>
+                    <div class="kpi-card green">
+                        <div class="kpi-icon">🎯</div>
+                        <div class="kpi-content">
+                            <span>Match Rate</span>
+                            <strong id="metricMatch">—</strong>
+                        </div>
+                    </div>
+                    <div class="kpi-card purple">
+                        <div class="kpi-icon">⚡</div>
+                        <div class="kpi-content">
+                            <span>Search Time</span>
+                            <strong id="metricTime">—</strong>
+                        </div>
+                    </div>
+                    <div class="kpi-card yellow">
+                        <div class="kpi-icon">💎</div>
+                        <div class="kpi-content">
+                            <span>API Cost</span>
+                            <strong id="metricCost">—</strong>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- HITL Warning -->
