@@ -228,51 +228,47 @@
         .kpi-bar {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1rem;
+            gap: 1.25rem;
             margin-bottom: 1.75rem;
         }
         .kpi-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 1.2rem 1.5rem;
+            border-radius: 16px;
+            padding: 1.4rem 1.5rem;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 1.25rem;
             transition: var(--transition);
             position: relative;
-            overflow: hidden;
+            box-shadow: var(--shadow-card);
         }
-        .kpi-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0;
-            width: 3px; height: 100%;
-            border-radius: 3px 0 0 3px;
-        }
-        .kpi-card.blue::before { background: var(--accent-blue); }
-        .kpi-card.green::before { background: var(--accent-green); }
-        .kpi-card.red::before { background: var(--accent-red); }
-        .kpi-card.yellow::before { background: var(--accent-yellow); }
-        .kpi-card.purple::before { background: var(--accent-purple); }
-        .kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+        .kpi-card:hover { transform: translateY(-3px); border-color: var(--border-glow); box-shadow: 0 12px 30px rgba(0,0,0,0.5), var(--shadow-glow); }
         .kpi-icon {
-            font-size: 1.6rem;
-            width: 48px; height: 48px;
+            font-size: 1.5rem;
+            width: 52px; height: 52px;
             display: flex; align-items: center; justify-content: center;
-            border-radius: 12px;
-            background: rgba(255,255,255,0.04);
+            border-radius: 50%;
             flex-shrink: 0;
+            transition: var(--transition);
         }
+        .kpi-card:hover .kpi-icon { transform: scale(1.08); }
+        
+        .kpi-card.blue .kpi-icon { background: rgba(59, 130, 246, 0.12); color: #3B82F6; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .kpi-card.green .kpi-icon { background: rgba(16, 185, 129, 0.12); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .kpi-card.red .kpi-icon { background: rgba(239, 68, 68, 0.12); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .kpi-card.yellow .kpi-icon { background: rgba(245, 158, 11, 0.12); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.2); }
+        .kpi-card.purple .kpi-icon { background: rgba(139, 92, 246, 0.12); color: #D946EF; border: 1px solid rgba(139, 92, 246, 0.2); }
+
         .kpi-content { flex: 1; min-width: 0; }
-        .kpi-content span { font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; display: block; }
+        .kpi-content span { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; display: block; font-weight: 500; }
         .kpi-content strong {
             font-family: var(--font-display);
             font-size: 1.8rem;
             font-weight: 700;
-            line-height: 1;
+            line-height: 1.1;
             display: block;
-            margin-top: 0.2rem;
+            margin-top: 0.25rem;
         }
 
         /* === LOW STOCK ALERT BANNER === */
