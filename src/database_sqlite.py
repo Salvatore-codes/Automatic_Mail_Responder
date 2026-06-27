@@ -149,6 +149,18 @@ def init_db_conn(conn):
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    # 8. Inventory logs table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS inventory_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sku_id TEXT,
+        sku_name TEXT,
+        old_stock INTEGER,
+        new_stock INTEGER,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
     
     conn.commit()
 
@@ -382,6 +394,30 @@ def get_escalated_negotiations(tenant_id=None):
     FROM quotations
     WHERE status IN ('NEGOTIATION_ESCALATED', 'NEGOTIATION_NEGOTIATING')
     ORDER BY created_at DESC
+    """)
+    rows = cursor.fetchall()
+    items = [dict(row) for row in rows]
+    conn.close()
+    return items
+
+def log_inventory_update(sku_id, sku_name, old_stock, new_stock, tenant_id=None):
+    conn = get_connection(tenant_id)
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO inventory_logs (sku_id, sku_name, old_stock, new_stock)
+    VALUES (?, ?, ?, ?)
+    """, (sku_id, sku_name, old_stock, new_stock))
+    conn.commit()
+    conn.close()
+
+def get_inventory_logs(tenant_id=None):
+    conn = get_connection(tenant_id)
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT id, sku_id, sku_name, old_stock, new_stock, updated_at
+    FROM inventory_logs
+    ORDER BY updated_at DESC
+    LIMIT 100
     """)
     rows = cursor.fetchall()
     items = [dict(row) for row in rows]

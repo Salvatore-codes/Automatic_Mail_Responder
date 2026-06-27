@@ -744,14 +744,25 @@ async def resolve_negotiation_endpoint(req: NegotiationResolveRequest):
 
 @app.post("/api/inventory/update")
 async def update_inventory_stock(req: InventoryUpdateRequest):
-    """Updates the stock of a specific SKU in the catalog."""
+    """Updates the stock of a specific SKU in the catalog and logs the change."""
     try:
         from src.tenants import get_tenant_catalog
+        from src.database_sqlite import log_inventory_update
         catalog = get_tenant_catalog(req.tenant_id)
+        # Capture old stock before update
+        old_stock = 0
+        sku_name = req.sku_id
+        for sku in catalog.skus:
+            if sku["sku_id"] == req.sku_id:
+                old_stock = int(sku.get("stock", 0))
+                sku_name = sku.get("sku_name", req.sku_id)
+                break
         success = catalog.update_sku_stock(req.sku_id, req.new_stock)
         if not success:
             raise HTTPException(status_code=404, detail=f"SKU {req.sku_id} not found in catalog.")
-        return {"status": "SUCCESS", "message": f"Stock for SKU {req.sku_id} updated to {req.new_stock}."}
+        # Log the change to DB
+        log_inventory_update(req.sku_id, sku_name, old_stock, req.new_stock, req.tenant_id)
+        return {"status": "SUCCESS", "message": f"Stock for SKU {req.sku_id} updated from {old_stock} to {req.new_stock}."}
     except HTTPException:
         raise
     except Exception as e:
@@ -797,6 +808,16 @@ async def get_full_catalog(tenant_id: str = "default"):
         ]
         items.sort(key=lambda x: x["sku_id"])
         return {"count": len(items), "items": items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/inventory/logs")
+async def get_inventory_update_logs(tenant_id: str = "default"):
+    """Returns the audit log of all stock quantity changes."""
+    try:
+        from src.database_sqlite import get_inventory_logs
+        logs = get_inventory_logs(tenant_id)
+        return {"count": len(logs), "logs": logs}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

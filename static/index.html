@@ -793,6 +793,9 @@
             <button class="nav-tab" id="tab-inventory" onclick="switchTab('inventory')">
                 🏭 Full Inventory
             </button>
+            <button class="nav-tab" id="tab-stocklog" onclick="switchTab('stocklog')">
+                📋 Stock Update Log
+            </button>
         </div>
         <div class="nav-controls">
             <select class="tenant-selector" id="tenantSelect">
@@ -1111,6 +1114,40 @@
         </div>
     </div>
 
+    <!-- ===================== TAB 6: STOCK UPDATE LOG ===================== -->
+    <div class="tab-content" id="content-stocklog">
+        <div class="card-glass shadow-lg p-6">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+                <div>
+                    <h2><span class="icon">📋</span> Stock Update Log</h2>
+                    <p class="text-sm text-muted mt-1">Audit trail of all stock quantity changes made via the dashboard.</p>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="loadStockLog()">🔄 Refresh</button>
+            </div>
+            <div style="position:relative">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width:50px">#</th>
+                                <th style="width:180px">SKU ID</th>
+                                <th>Product Name</th>
+                                <th style="width:130px">Old Stock</th>
+                                <th style="width:130px">New Stock</th>
+                                <th style="width:100px">Change</th>
+                                <th style="width:200px">Updated At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockLogBody">
+                            <tr><td colspan="7"><div class="empty-state"><div class="es-icon">📋</div><h3>Loading log…</h3></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="loader-overlay" id="stockLogLoader"><div class="big-spinner"></div><p style="font-family:var(--font-display)">Loading log…</p></div>
+            </div>
+        </div>
+    </div>
+
 </div><!-- end app-shell -->
 
 <!-- ===== MODALS ===== -->
@@ -1167,8 +1204,9 @@
             <hr class="divider">
             <div class="form-group">
                 <label class="form-label">New Stock Level (On-Hand)</label>
-                <input type="number" id="inventoryStockInput" class="form-control" min="0" placeholder="Enter new stock level…">
-                <p class="text-muted text-sm mt-1">This will update the catalog stock level on disk immediately.</p>
+                <input type="number" id="inventoryStockInput" class="form-control" min="0" placeholder="Enter new stock level… (press Enter to save)"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('updateInventoryBtn').click();}">
+                <p class="text-muted text-sm mt-1">This will update the catalog stock level on disk immediately. Press <kbd style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);padding:1px 6px;border-radius:4px;font-size:0.75rem">Enter</kbd> to save.</p>
             </div>
         </div>
         <div class="modal-footer">
@@ -1254,6 +1292,7 @@ function switchTab(tab) {
     if (tab === 'negotiations') loadNegotiations();
     if (tab === 'quotes') { loadQuotes(); loadLowStock(); }
     if (tab === 'inventory') loadFullInventory();
+    if (tab === 'stocklog') loadStockLog();
 }
 
 // ========== UTILS ==========
@@ -1727,8 +1766,8 @@ document.getElementById('updateInventoryBtn').onclick = async function() {
             showToast('✅ Stock updated successfully!', 'success');
             closeModal('inventoryModal');
             loadLowStock(); // reload low stock indicators
-            // Check activeTab (loaded via global or check switchTab)
-            if (typeof loadDeficits === 'function') loadDeficits(); // reload deficits if needed
+            loadFullInventory(); // refresh full inventory grid
+            loadStockLog(); // refresh the audit log
         } else {
             showToast('❌ ' + (data.detail || data.message || 'Error updating stock.'), 'error');
         }
@@ -2035,6 +2074,53 @@ function renderInventoryTable(items) {
     });
 }
 
+// ========== STOCK UPDATE LOG ==========
+async function loadStockLog() {
+    const tbody = document.getElementById('stockLogBody');
+    const loader = document.getElementById('stockLogLoader');
+    loader.classList.add('visible');
+    try {
+        const res = await fetch(`/api/inventory/logs?tenant_id=${getTenantId()}`);
+        const data = await res.json();
+        renderStockLog(data.logs || []);
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="es-icon">❌</div><h3>Error loading log</h3><p>${e.message}</p></div></td></tr>`;
+    } finally {
+        loader.classList.remove('visible');
+    }
+}
+
+function renderStockLog(logs) {
+    const tbody = document.getElementById('stockLogBody');
+    tbody.innerHTML = '';
+    if (!logs.length) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="es-icon">📋</div><h3>No stock updates yet</h3><p>Changes will appear here after you update any SKU stock level.</p></div></td></tr>';
+        return;
+    }
+    logs.forEach((log, idx) => {
+        const diff = log.new_stock - log.old_stock;
+        const diffLabel = diff > 0
+            ? `<span class="pill green">+${diff}</span>`
+            : diff < 0
+                ? `<span class="pill red">${diff}</span>`
+                : `<span class="pill gray">No change</span>`;
+        // Format timestamp nicely
+        const dt = log.updated_at ? new Date(log.updated_at.replace(' ', 'T') + 'Z') : null;
+        const dtStr = dt ? dt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : log.updated_at || '—';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="text-sm text-muted">${idx + 1}</td>
+            <td><code style="color:#A5B4FC">${log.sku_id}</code></td>
+            <td><strong>${log.sku_name}</strong></td>
+            <td><span style="color:${log.old_stock <= 5 ? '#FCD34D' : '#9CA3AF'}">${log.old_stock} units</span></td>
+            <td><strong style="color:${log.new_stock === 0 ? '#F87171' : log.new_stock <= 5 ? '#FCD34D' : '#34D399'}">${log.new_stock} units</strong></td>
+            <td>${diffLabel}</td>
+            <td class="text-sm text-muted">${dtStr}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
 // ========== INIT ==========
 async function init() {
     await loadTenants();
@@ -2078,6 +2164,7 @@ document.getElementById('tenantSelect').addEventListener('change', () => {
     else if (active === 'negotiations') loadNegotiations();
     else if (active === 'quotes') { loadQuotes(); loadLowStock(); }
     else if (active === 'inventory') loadFullInventory();
+    else if (active === 'stocklog') loadStockLog();
 });
 
 init();
