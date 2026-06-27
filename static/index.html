@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Custom Scrollbars */
@@ -955,7 +955,7 @@
                 <!-- Chart Card -->
                 <div class="section-card" style="padding: 1.5rem 1.75rem; margin-bottom:1.25rem">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
-                        <h3 style="font-size: 0.95rem; font-weight:700; display:flex; align-items:center; gap:0.5rem"><span class="material-symbols-outlined" style="font-size:1.2rem; color:var(--accent-blue)">show_chart</span> Trade Analytics Overview</h3>
+                        <h3 style="font-size: 0.95rem; font-weight:700; display:flex; align-items:center; gap:0.5rem"><i data-lucide="trending-up" style="color:var(--accent-blue)"></i> Trade Analytics Overview</h3>
                         <span style="font-size: 0.72rem; color:var(--text-secondary); font-weight:600; background:rgba(0,82,204,0.08); padding:0.2rem 0.6rem; border-radius:10px">Live Updates</span>
                     </div>
                     <div style="position:relative; height: 180px; width: 100%;">
@@ -972,10 +972,10 @@
                 <!-- Results Table -->
                 <div class="section-card">
                     <div class="section-header">
-                        <h2><span class="material-symbols-outlined" style="font-size:1.4rem;vertical-align:middle;margin-right:0.4rem">grid_on</span> Match Results Matrix</h2>
+                        <h2><i data-lucide="table"></i> Match Results Matrix</h2>
                         <div class="gap-row" id="actionRow" style="display:none">
-                            <button class="btn btn-ghost btn-sm" id="negotiateOpenBtn"><span class="material-symbols-outlined" style="font-size:1.1rem;vertical-align:middle;margin-right:0.25rem">handshake</span> Negotiate</button>
-                            <button class="btn btn-primary btn-sm" id="generatePdfBtn"><span class="material-symbols-outlined" style="font-size:1.1rem;vertical-align:middle;margin-right:0.25rem">picture_as_pdf</span> Generate Quote PDF</button>
+                            <button class="btn btn-ghost btn-sm" id="negotiateOpenBtn"><i data-lucide="message-square-text"></i> Negotiate</button>
+                            <button class="btn btn-primary btn-sm" id="generatePdfBtn"><i data-lucide="file-text"></i> Generate Quote PDF</button>
                         </div>
                     </div>
                     <div class="data-table-wrapper">
@@ -992,7 +992,7 @@
                                 </tr>
                             </thead>
                             <tbody id="resultsTableBody">
-                                <tr><td colspan="7" class="empty-state" style="padding:3rem 0;border:none;"><div class="es-icon"><span class="material-symbols-outlined" style="font-size:3.5rem;opacity:0.35">search</span></div><p class="text-muted">Run the pipeline to see results here.</p></td></tr>
+                                <tr><td colspan="7" class="empty-state" style="padding:3rem 0;border:none;"><div class="es-icon"><i data-lucide="search" style="width:48px;height:48px;opacity:0.35"></i></div><p class="text-muted">Run the pipeline to see results here.</p></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1016,7 +1016,7 @@
                 <!-- AI Negotiation Chat -->
                 <div class="section-card neg-panel" id="negotiationPanel">
                     <div class="section-header">
-                        <h2><span class="material-symbols-outlined" style="font-size:1.4rem;vertical-align:middle;margin-right:0.4rem">handshake</span> AI Negotiation Chat</h2>
+                        <h2><i data-lucide="message-square-text"></i> AI Negotiation Chat</h2>
                         <span class="pill blue" id="negStatus">Active</span>
                     </div>
                     <div class="section-body" style="display:flex;flex-direction:column;gap:1rem">
@@ -1041,19 +1041,19 @@
 
         <!-- Low Stock Alert Banner -->
         <div class="low-stock-banner" id="lowStockBanner">
-            <span class="material-symbols-outlined" style="font-size:1.6rem;color:#B91C1C;margin-right:0.5rem">warning</span>
+            <i data-lucide="alert-triangle" style="color:#B91C1C;margin-right:0.5rem"></i>
             <div class="banner-text">
                 <strong id="lowStockCount">0 SKUs</strong> are at critically low stock levels (≤ 5 units).
                 <p id="lowStockNames">—</p>
             </div>
-            <button class="btn btn-danger btn-sm" onclick="switchTab('inventory')"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">inventory_2</span> View Inventory</button>
+            <button class="btn btn-danger btn-sm" onclick="switchTab('inventory')"><i data-lucide="package" style="margin-right:0.25rem"></i> View Inventory</button>
         </div>
 
         <!-- KPI Bar -->
         <div class="metrics-row" style="margin-bottom:1.5rem">
             <div class="kpi-card red">
                 <div class="kpi-icon">
-                    <span class="material-symbols-outlined">inventory_2</span>
+                    <i data-lucide="package"></i>
                 </div>
                 <div class="kpi-content">
                     <span>Pending Deficits</span>
@@ -1062,7 +1062,7 @@
             </div>
             <div class="kpi-card green">
                 <div class="kpi-icon">
-                    <span class="material-symbols-outlined">check_circle</span>
+                    <i data-lucide="check-circle-2"></i>
                 </div>
                 <div class="kpi-content">
                     <span>Resolved Today</span>
@@ -1071,7 +1071,7 @@
             </div>
             <div class="kpi-card yellow">
                 <div class="kpi-icon">
-                    <span class="material-symbols-outlined">store</span>
+                    <i data-lucide="store"></i>
                 </div>
                 <div class="kpi-content">
                     <span>Unique SKUs Affected</span>
@@ -1080,7 +1080,7 @@
             </div>
             <div class="kpi-card blue">
                 <div class="kpi-icon">
-                    <span class="material-symbols-outlined">group</span>
+                    <i data-lucide="users"></i>
                 </div>
                 <div class="kpi-content">
                     <span>Customers Waiting</span>
@@ -1092,8 +1092,8 @@
         <!-- Deficits Table -->
         <div class="section-card" style="position:relative">
             <div class="section-header">
-                <h2><span class="material-symbols-outlined" style="font-size:1.4rem;vertical-align:middle;margin-right:0.4rem">warning</span> Active Stock Deficits</h2>
-                <button class="btn btn-ghost btn-sm" onclick="loadDeficits()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">sync</span> Refresh</button>
+                <h2><i data-lucide="alert-triangle"></i> Active Stock Deficits</h2>
+                <button class="btn btn-ghost btn-sm" onclick="loadDeficits()"><i data-lucide="rotate-cw"></i> Refresh</button>
             </div>
             <div class="data-table-wrapper">
                 <table class="data-table">
@@ -1113,7 +1113,7 @@
                         </tr>
                     </thead>
                     <tbody id="deficitsTableBody">
-                        <tr><td colspan="11"><div class="empty-state"><div class="es-icon"><span class="material-symbols-outlined" style="font-size:3.5rem;opacity:0.35">inventory_2</span></div><h3>Loading deficits…</h3></div></td></tr>
+                        <tr><td colspan="11"><div class="empty-state"><div class="es-icon"><i data-lucide="package" style="opacity:0.35;width:48px;height:48px"></i></div><h3>Loading deficits…</h3></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1125,8 +1125,8 @@
     <div class="tab-content" id="content-negotiations">
         <div class="section-card" style="position:relative">
             <div class="section-header">
-                <h2><span class="material-symbols-outlined" style="font-size:1.4rem;vertical-align:middle;margin-right:0.4rem">handshake</span> Escalated Negotiations Desk</h2>
-                <button class="btn btn-ghost btn-sm" onclick="loadNegotiations()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">sync</span> Refresh</button>
+                <h2><i data-lucide="message-square-text"></i> Escalated Negotiations Desk</h2>
+                <button class="btn btn-ghost btn-sm" onclick="loadNegotiations()"><i data-lucide="rotate-cw"></i> Refresh</button>
             </div>
             <div class="data-table-wrapper">
                 <table class="data-table">
@@ -1144,7 +1144,7 @@
                         </tr>
                     </thead>
                     <tbody id="negsTableBody">
-                        <tr><td colspan="9"><div class="empty-state"><div class="es-icon"><span class="material-symbols-outlined" style="font-size:3.5rem;opacity:0.35">handshake</span></div><h3>Loading negotiations…</h3></div></td></tr>
+                        <tr><td colspan="9"><div class="empty-state"><div class="es-icon"><i data-lucide="message-square-text" style="opacity:0.35;width:48px;height:48px"></i></div><h3>Loading negotiations…</h3></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1158,25 +1158,25 @@
         <!-- Low Stock Inventory Cards (shown at top of quotes tab) -->
         <div class="section-card" style="margin-bottom:1.5rem">
             <div class="section-header">
-                <h2><span class="material-symbols-outlined" style="font-size:1.4rem;vertical-align:middle;margin-right:0.4rem">warning</span> Live Inventory — Low Stock Warning</h2>
-                <button class="btn btn-ghost btn-sm" onclick="loadLowStock()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">sync</span> Refresh</button>
+                <h2><i data-lucide="alert-triangle"></i> Live Inventory — Low Stock Warning</h2>
+                <button class="btn btn-ghost btn-sm" onclick="loadLowStock()"><i data-lucide="rotate-cw"></i> Refresh</button>
             </div>
             <div class="section-body" id="lowStockBody">
-                <div class="empty-state"><div class="es-icon"><span class="material-symbols-outlined" style="font-size:3.5rem;color:#10B981">check_circle</span></div><h3>All Good</h3><p>No low-stock items detected.</p></div>
+                <div class="empty-state"><div class="es-icon"><i data-lucide="check-circle-2" style="color:#10B981;width:48px;height:48px"></i></div><h3>All Good</h3><p>No low-stock items detected.</p></div>
             </div>
         </div>
 
         <div class="section-card" style="position:relative">
             <div class="section-header">
-                <h2><span class="material-symbols-outlined" style="font-size:1.4rem;vertical-align:middle;margin-right:0.4rem">folder_zip</span> Quotation Repository</h2>
+                <h2><i data-lucide="folder-open"></i> Quotation Repository</h2>
                 <div class="gap-row">
                     <input type="text" id="quoteSearch" class="form-control" style="width:240px;padding:0.45rem 1rem;font-size:0.8rem" placeholder="Search by customer or invoice…">
-                    <button class="btn btn-ghost btn-sm" onclick="loadQuotes()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">sync</span> Refresh</button>
+                    <button class="btn btn-ghost btn-sm" onclick="loadQuotes()"><i data-lucide="rotate-cw"></i> Refresh</button>
                 </div>
             </div>
             <div class="section-body">
                 <div class="quote-grid" id="quoteGrid">
-                    <div class="empty-state" style="grid-column:1/-1"><div class="es-icon"><span class="material-symbols-outlined" style="font-size:3.5rem;opacity:0.35">folder_zip</span></div><h3>Loading quotes…</h3></div>
+                    <div class="empty-state" style="grid-column:1/-1"><div class="es-icon"><i data-lucide="folder-open" style="opacity:0.35;width:48px;height:48px"></i></div><h3>Loading quotes…</h3></div>
                 </div>
             </div>
             <div class="loader-overlay" id="quotesLoader"><div class="big-spinner"></div><p style="font-family:var(--font-display)">Loading quotes…</p></div>
@@ -1188,12 +1188,12 @@
         <div class="section-card" style="position:relative">
             <div class="section-header">
                 <div>
-                    <h2 style="display:flex;align-items:center;gap:0.5rem"><span class="material-symbols-outlined" style="font-size:1.4rem;color:var(--accent-blue)">store</span> Full Catalog Inventory</h2>
+                    <h2 style="display:flex;align-items:center;gap:0.5rem"><i data-lucide="store" style="color:var(--accent-blue)"></i> Full Catalog Inventory</h2>
                     <p class="text-sm text-muted mt-1" style="font-size:0.75rem;margin-top:0.25rem">View and update stock levels for all products in the catalog.</p>
                 </div>
                 <div style="display:flex;gap:0.75rem;align-items:center">
                     <input type="text" id="inventorySearchInput" class="form-control" placeholder="Search catalog SKUs or names…" style="width:250px;padding:0.45rem 1rem;font-size:0.8rem">
-                    <button class="btn btn-ghost btn-sm" onclick="loadFullInventory()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">sync</span> Refresh</button>
+                    <button class="btn btn-ghost btn-sm" onclick="loadFullInventory()"><i data-lucide="rotate-cw"></i> Refresh</button>
                 </div>
             </div>
             
@@ -1212,7 +1212,7 @@
                         </tr>
                     </thead>
                     <tbody id="inventoryTableBody">
-                        <tr><td colspan="8"><div class="empty-state"><div class="es-icon"><span class="material-symbols-outlined" style="font-size:3.5rem;opacity:0.35">store</span></div><h3>Loading inventory catalog…</h3></div></td></tr>
+                        <tr><td colspan="8"><div class="empty-state"><div class="es-icon"><i data-lucide="store" style="opacity:0.35;width:48px;height:48px"></i></div><h3>Loading inventory catalog…</h3></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1225,10 +1225,10 @@
         <div class="section-card" style="position:relative">
             <div class="section-header">
                 <div>
-                    <h2 style="display:flex;align-items:center;gap:0.5rem"><span class="material-symbols-outlined" style="font-size:1.4rem;color:var(--accent-blue)">history</span> Stock Update Log</h2>
+                    <h2 style="display:flex;align-items:center;gap:0.5rem"><i data-lucide="history" style="color:var(--accent-blue)"></i> Stock Update Log</h2>
                     <p class="text-sm text-muted mt-1" style="font-size:0.75rem;margin-top:0.25rem">Audit trail of all stock quantity changes made via the dashboard.</p>
                 </div>
-                <button class="btn btn-ghost btn-sm" onclick="loadStockLog()"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;margin-right:0.25rem">sync</span> Refresh</button>
+                <button class="btn btn-ghost btn-sm" onclick="loadStockLog()"><i data-lucide="rotate-cw"></i> Refresh</button>
             </div>
             <div class="data-table-wrapper">
                 <table class="data-table">
@@ -1244,7 +1244,7 @@
                         </tr>
                     </thead>
                     <tbody id="stockLogBody">
-                        <tr><td colspan="7"><div class="empty-state"><div class="es-icon"><span class="material-symbols-outlined" style="font-size:3.5rem;opacity:0.35">history</span></div><h3>Loading log…</h3></div></td></tr>
+                        <tr><td colspan="7"><div class="empty-state"><div class="es-icon"><i data-lucide="history" style="opacity:0.35;width:48px;height:48px"></i></div><h3>Loading log…</h3></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1279,7 +1279,7 @@
 <div class="modal-overlay" id="deficitModal">
     <div class="modal-box">
         <div class="modal-header">
-            <h3>🏭 Fulfill Deficit &amp; Update Stock</h3>
+            <h3><i data-lucide="package" style="vertical-align:middle;margin-right:0.4rem"></i> Fulfill Deficit &amp; Update Stock</h3>
             <button class="modal-close" onclick="closeModal('deficitModal')">✕</button>
         </div>
         <div class="modal-body">
@@ -1293,7 +1293,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('deficitModal')">Cancel</button>
-            <button class="btn btn-success" id="resolveDeficitBtn">✅ Resolve &amp; Email Customer</button>
+            <button class="btn btn-success" id="resolveDeficitBtn"><i data-lucide="check-circle-2" style="margin-right:0.25rem;vertical-align:middle"></i> Resolve &amp; Email Customer</button>
         </div>
     </div>
 </div>
@@ -1302,7 +1302,7 @@
 <div class="modal-overlay" id="inventoryModal">
     <div class="modal-box">
         <div class="modal-header">
-            <h3>✏️ Update Stock Quantity</h3>
+            <h3><i data-lucide="edit" style="vertical-align:middle;margin-right:0.4rem"></i> Update Stock Quantity</h3>
             <button class="modal-close" onclick="closeModal('inventoryModal')">✕</button>
         </div>
         <div class="modal-body">
@@ -1317,7 +1317,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal('inventoryModal')">Cancel</button>
-            <button class="btn btn-primary" id="updateInventoryBtn">💾 Save Stock</button>
+            <button class="btn btn-primary" id="updateInventoryBtn"><i data-lucide="save" style="margin-right:0.25rem;vertical-align:middle"></i> Save Stock</button>
         </div>
     </div>
 </div>
@@ -1326,12 +1326,12 @@
 <div class="modal-overlay" id="chatModal">
     <div class="modal-box" style="max-width:620px">
         <div class="modal-header">
-            <h3 id="chatModalTitle">💬 Chat History</h3>
+            <h3 id="chatModalTitle"><i data-lucide="message-square" style="vertical-align:middle;margin-right:0.4rem"></i> Chat History</h3>
             <button class="modal-close" onclick="closeModal('chatModal')">✕</button>
         </div>
         <div class="modal-body" style="padding:0">
             <div style="padding:1.5rem;display:flex;flex-direction:column;gap:0.75rem;max-height:450px;overflow-y:auto" id="chatModalBody">
-                <div class="empty-state"><div class="es-icon">💬</div><h3>No chat messages</h3></div>
+                <div class="empty-state"><div class="es-icon"><i data-lucide="message-square" style="opacity:0.35;width:48px;height:48px"></i></div><h3>No chat messages</h3></div>
             </div>
         </div>
         <div class="modal-footer">
@@ -1363,9 +1363,9 @@
         </div>
         <div class="modal-footer" style="flex-wrap:wrap">
             <button class="btn btn-ghost" onclick="closeModal('negResolveModal')">Cancel</button>
-            <button class="btn btn-danger btn-sm" id="negRejectBtn">✗ Reject</button>
-            <button class="btn btn-warning btn-sm" id="negCounterBtn">↔ Counter Offer</button>
-            <button class="btn btn-success btn-sm" id="negApproveBtn">✓ Approve Discount</button>
+            <button class="btn btn-danger btn-sm" id="negRejectBtn"><i data-lucide="x-circle" style="margin-right:0.25rem;vertical-align:middle"></i> Reject</button>
+            <button class="btn btn-warning btn-sm" id="negCounterBtn"><i data-lucide="git-pull-request" style="margin-right:0.25rem;vertical-align:middle"></i> Counter Offer</button>
+            <button class="btn btn-success btn-sm" id="negApproveBtn"><i data-lucide="check" style="margin-right:0.25rem;vertical-align:middle"></i> Approve Discount</button>
         </div>
     </div>
 </div>
