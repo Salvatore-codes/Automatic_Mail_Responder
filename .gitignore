@@ -23,3 +23,7 @@ static/quotes/*
 .vscode/
 ~$*.docx
 *.docx
+
+# Node / React SPA build output
+react-app/node_modules/
+react-app/dist/
