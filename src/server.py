@@ -1119,6 +1119,138 @@ async def get_report():
     return FileResponse(os.path.join(static_dir, "report.html"))
 
 
+from fastapi.responses import RedirectResponse, HTMLResponse
+import urllib.request
+import urllib.parse
+
+@app.get("/api/outlook/login")
+def outlook_login(tenant_id: str = "default"):
+    tenant_config = get_tenant_config(tenant_id)
+    outlook_tenant_id = tenant_config.get("outlook_tenant_id")
+    outlook_client_id = tenant_config.get("outlook_client_id")
+    
+    if not outlook_tenant_id or not outlook_client_id:
+        raise HTTPException(status_code=400, detail="Outlook configuration is missing for this tenant.")
+    
+    scopes = "offline_access https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send"
+    redirect_uri = "http://localhost:8000/api/outlook/callback"
+    
+    params = {
+        "client_id": outlook_client_id,
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "response_mode": "query",
+        "scope": scopes,
+        "state": tenant_id
+    }
+    
+    auth_url = f"https://login.microsoftonline.com/{outlook_tenant_id}/oauth2/v2.0/authorize?" + urllib.parse.urlencode(params)
+    return RedirectResponse(auth_url)
+
+@app.get("/api/outlook/callback", response_class=HTMLResponse)
+@app.get("/api/outlook/callback.", response_class=HTMLResponse)
+def outlook_callback(code: str = None, error: str = None, error_description: str = None, state: str = "default"):
+    if error:
+        return f"""
+        <html>
+            <head><title>Authentication Failed</title></head>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding-top: 50px; background-color: #FFF0F0;">
+                <h2 style="color: #D32F2F;">Authentication Failed</h2>
+                <p><strong>Error:</strong> {error}</p>
+                <p><strong>Description:</strong> {error_description}</p>
+            </body>
+        </html>
+        """
+        
+    if not code:
+        raise HTTPException(status_code=400, detail="Authorization code is missing.")
+        
+    tenant_id = state
+    tenant_config = get_tenant_config(tenant_id)
+    outlook_tenant_id = tenant_config.get("outlook_tenant_id")
+    outlook_client_id = tenant_config.get("outlook_client_id")
+    outlook_client_secret = tenant_config.get("outlook_client_secret")
+    
+    token_url = f"https://login.microsoftonline.com/{outlook_tenant_id}/oauth2/v2.0/token"
+    redirect_uri = "http://localhost:8000/api/outlook/callback"
+    
+    data = {
+        "client_id": outlook_client_id,
+        "client_secret": outlook_client_secret,
+        "code": code,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code",
+        "scope": "offline_access https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send"
+    }
+    
+    encoded_data = urllib.parse.urlencode(data).encode("utf-8")
+    req = urllib.request.Request(token_url, data=encoded_data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+    
+    try:
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode("utf-8"))
+            
+            # Save the tokens
+            token_dir = os.path.join(project_root, "data")
+            os.makedirs(token_dir, exist_ok=True)
+            token_file = os.path.join(token_dir, f"outlook_tokens_{tenant_id}.json")
+            
+            with open(token_file, "w", encoding="utf-8") as f:
+                json.dump(res_data, f, indent=2)
+                
+            return """
+            <html>
+                <head>
+                    <title>Authentication Successful</title>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', Arial, sans-serif;
+                            text-align: center;
+                            padding-top: 100px;
+                            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                            height: 100vh;
+                            margin: 0;
+                        }
+                        .container {
+                            background: white;
+                            display: inline-block;
+                            padding: 40px 60px;
+                            border-radius: 12px;
+                            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                        }
+                        h2 { color: #2E7D32; margin-top: 0; }
+                        p { color: #555; font-size: 16px; }
+                        .checkmark { font-size: 60px; color: #4CAF50; margin-bottom: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="checkmark">✓</div>
+                        <h2>Authentication Successful!</h2>
+                        <p>Your Outlook Mail account has been authorized successfully.</p>
+                        <p>You can close this browser tab now and return to the dashboard.</p>
+                    </div>
+                </body>
+            </html>
+            """
+    except Exception as e:
+        err_msg = str(e)
+        if hasattr(e, "read"):
+            try:
+                err_msg += " - " + e.read().decode("utf-8")
+            except Exception:
+                pass
+        return f"""
+        <html>
+            <head><title>Token Exchange Failed</title></head>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding-top: 50px; background-color: #FFF0F0;">
+                <h2 style="color: #D32F2F;">Token Exchange Failed</h2>
+                <p><strong>Error Details:</strong> {err_msg}</p>
+            </body>
+        </html>
+        """
+
+
 @app.get("/")
 async def get_index():
     # Serves static dashboard index by default, with cache-control to prevent caching

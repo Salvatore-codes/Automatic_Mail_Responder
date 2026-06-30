@@ -1336,7 +1336,64 @@ import urllib.request
 import urllib.parse
 import json
 
+def get_graph_token_delegated(tenant_id, client_id, client_secret):
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    token_file = os.path.join(project_root, "data", f"outlook_tokens_{tenant_id}.json")
+    if not os.path.exists(token_file):
+        return None
+        
+    try:
+        with open(token_file, "r", encoding="utf-8") as f:
+            tokens = json.load(f)
+    except Exception as e:
+        print(f"[Outlook Auth] Error reading token file: {e}")
+        return None
+        
+    mtime = os.path.getmtime(token_file)
+    expires_in = tokens.get("expires_in", 3600)
+    # 5-minute safety buffer
+    if time.time() > mtime + expires_in - 300:
+        print("[Outlook Auth] Access token expired or close to expiration. Refreshing...")
+        refresh_token = tokens.get("refresh_token")
+        if not refresh_token:
+            print("[Outlook Auth] No refresh token found in token file.")
+            return None
+            
+        token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
+        redirect_uri = "http://localhost:8000/api/outlook/callback"
+        
+        data = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "scope": "offline_access https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send",
+            "redirect_uri": redirect_uri
+        }
+        encoded_data = urllib.parse.urlencode(data).encode("utf-8")
+        req = urllib.request.Request(token_url, data=encoded_data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+        
+        try:
+            with urllib.request.urlopen(req) as response:
+                new_tokens = json.loads(response.read().decode("utf-8"))
+                if "refresh_token" not in new_tokens:
+                    new_tokens["refresh_token"] = refresh_token
+                
+                with open(token_file, "w", encoding="utf-8") as f:
+                    json.dump(new_tokens, f, indent=2)
+                return new_tokens.get("access_token")
+        except Exception as re:
+            print(f"[Outlook Auth] Error refreshing token: {re}")
+            return None
+    else:
+        return tokens.get("access_token")
+
 def get_graph_token(tenant_id, client_id, client_secret):
+    # Try delegated token first
+    del_token = get_graph_token_delegated(tenant_id, client_id, client_secret)
+    if del_token:
+        return del_token
+
     url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
     data = {
         "grant_type": "client_credentials",
@@ -1357,17 +1414,14 @@ def get_graph_token(tenant_id, client_id, client_secret):
 def fetch_outlook_messages(access_token, email_user):
     # Fetch newest 30 messages from Inbox that are unread
     url = f"https://graph.microsoft.com/v1.0/users/{email_user}/mailFolders/inbox/messages?$filter=isRead eq false&$orderby=receivedDateTime desc&$top=30"
+    url = url.replace(" ", "%20")
     req = urllib.request.Request(url, headers={
         "Authorization": f"Bearer {access_token}",
         "Accept": "application/json"
     })
-    try:
-        with urllib.request.urlopen(req) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            return res_data.get("value", [])
-    except Exception as e:
-        print(f"[Outlook Mail] Error fetching messages: {e}")
-        return []
+    with urllib.request.urlopen(req) as response:
+        res_data = json.loads(response.read().decode("utf-8"))
+        return res_data.get("value", [])
 
 def fetch_outlook_attachments(access_token, email_user, message_id):
     url = f"https://graph.microsoft.com/v1.0/users/{email_user}/messages/{message_id}/attachments"
@@ -1601,7 +1655,25 @@ def poll_outlook_graph(catalog, crm_path, tenant_id, tenant_config, crm_emails, 
     except Exception:
         pass
 
-    messages = fetch_outlook_messages(token, email_user)
+    try:
+        messages = fetch_outlook_messages(token, email_user)
+    except Exception as e:
+        print(f"[Outlook Mail] Error fetching messages: {e}")
+        error_msg = str(e)
+        if hasattr(e, "read"):
+            try:
+                error_msg += " - " + e.read().decode("utf-8")
+            except Exception:
+                pass
+        
+        status = "AUTH_FAILED" if "403" in error_msg or "401" in error_msg or "access" in error_msg.lower() else "ERROR"
+        try:
+            from src.database_sqlite import update_service_status
+            update_service_status(status, error_message=f"Mailbox access error: {error_msg}", tenant_id=tenant_id)
+        except Exception:
+            pass
+        return
+
     if not messages:
         try:
             update_service_status("IDLE", tenant_id=tenant_id)

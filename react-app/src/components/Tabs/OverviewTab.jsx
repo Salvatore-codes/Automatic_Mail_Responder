@@ -579,6 +579,47 @@ export default function OverviewTab({ tenantId, showToast, setActiveTab, navigat
                 <strong>Details:</strong> {error_message}
               </div>
             )}
+            
+            {status === 'AUTH_FAILED' && (
+              <div style={{
+                marginTop: '0.4rem',
+                borderTop: '1px dashed rgba(0, 0, 0, 0.1)',
+                paddingTop: '0.6rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
+              }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: '500' }}>
+                  👉 Individual authorization required. Please authenticate this app to access your mailbox:
+                </span>
+                <a 
+                  href="/api/outlook/login" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    fontSize: '0.75rem',
+                    background: '#D97706',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    fontWeight: '600',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    boxShadow: '0 2px 4px rgba(217, 119, 6, 0.25)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseOver={(e) => e.target.style.background = '#B45309'}
+                  onMouseOut={(e) => e.target.style.background = '#D97706'}
+                >
+                  Authorize Outlook Mail (O365 Login)
+                </a>
+              </div>
+            )}
           </div>
         );
       })()}
