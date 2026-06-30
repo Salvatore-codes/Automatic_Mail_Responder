@@ -172,12 +172,12 @@ export default function OverviewTab({ tenantId, showToast, setActiveTab, navigat
   const { metrics, recent_stream = [], pending_items = {} } = data;
   const { negotiations = [], deficits = [], unmatched = [] } = pending_items;
 
-  // Formatting date helper
+  // Formatting date helper forced to IST timezone
   const formatTime = (ts) => {
     if (!ts) return '—';
     try {
       const d = new Date(ts.replace(' ', 'T') + 'Z');
-      return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+      return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) + ' ' + d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' });
     } catch (e) {
       return ts;
     }
@@ -254,12 +254,12 @@ export default function OverviewTab({ tenantId, showToast, setActiveTab, navigat
   });
 
   const getTodayMails = () => {
-    const todayStr = new Date().toLocaleDateString('en-IN');
+    const todayStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
     return recent_stream.filter(item => {
       if (!item.timestamp) return false;
       try {
         const mailDate = new Date(item.timestamp.replace(' ', 'T') + 'Z');
-        const mailDateStr = mailDate.toLocaleDateString('en-IN');
+        const mailDateStr = mailDate.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
         return mailDateStr === todayStr;
       } catch (e) {
         return false;
@@ -268,14 +268,13 @@ export default function OverviewTab({ tenantId, showToast, setActiveTab, navigat
   };
 
   const getYesterdayMails = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toLocaleDateString('en-IN');
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const yesterdayStr = yesterday.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
     return recent_stream.filter(item => {
       if (!item.timestamp) return false;
       try {
         const mailDate = new Date(item.timestamp.replace(' ', 'T') + 'Z');
-        const mailDateStr = mailDate.toLocaleDateString('en-IN');
+        const mailDateStr = mailDate.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
         return mailDateStr === yesterdayStr;
       } catch (e) {
         return false;
