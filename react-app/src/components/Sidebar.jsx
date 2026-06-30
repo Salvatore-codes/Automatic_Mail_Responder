@@ -55,56 +55,7 @@ export default function Sidebar({ activeTab, setActiveTab, deficitsCount, negsCo
         })}
       </div>
 
-      {/* Get More Features Premium Banner */}
-      <div style={{
-        marginTop: '1.5rem',
-        background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
-        border: '1px solid #A7F3D0',
-        borderRadius: '14px',
-        padding: '1rem',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Decorative background circle */}
-        <div style={{
-          position: 'absolute',
-          right: '-12px',
-          bottom: '-12px',
-          width: '55px',
-          height: '55px',
-          borderRadius: '50%',
-          background: 'rgba(16, 185, 129, 0.08)',
-          zIndex: 1
-        }} />
-        
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <h4 style={{ fontSize: '0.8rem', fontWeight: '700', color: '#065F46', marginBottom: '0.25rem' }}>
-            Get More Features
-          </h4>
-          <p style={{ fontSize: '0.68rem', color: '#047857', marginBottom: '0.75rem', lineHeight: '1.3' }}>
-            Unlock multi-warehouse sync, AI smart negotiations, and advanced analytics.
-          </p>
-          <button 
-            style={{
-              width: '100%',
-              background: '#0F172A',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '0.4rem',
-              fontSize: '0.7rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
-            onMouseOver={e => e.currentTarget.style.background = '#1E293B'}
-            onMouseOut={e => e.currentTarget.style.background = '#0F172A'}
-            onClick={() => alert("Premium Upgrade is a simulation placeholder.")}
-          >
-            Explore now
-          </button>
-        </div>
-      </div>
+
     </aside>
   );
 }
