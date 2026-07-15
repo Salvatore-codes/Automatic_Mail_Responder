@@ -53,7 +53,208 @@ function dashboardApp() {
         'Manual': 'கைமுறை',
         'Live': 'நேரடி',
         'Services': 'சேவைகள்',
-        'Trading / Stocks': 'வர்த்தகம் / பொருட்கள்'
+        'Trading / Stocks': 'வர்த்தகம் / பொருட்கள்',
+        
+        // Overview Tab Details
+        'Operations Command Center': 'செயல்பாட்டு கட்டுப்பாட்டு மையம்',
+        'Good morning': 'காலை வணக்கம்',
+        'Good afternoon': 'மதிய வணக்கம்',
+        'Good evening': 'மாலை வணக்கம்',
+        'enquiries handled all-time': 'இதுவரை கையாளப்பட்ட விசாரணைகள்',
+        'Automation Rate': 'தானியங்கி வீதம்',
+        'Processed Enquiries': 'செயலாக்கப்பட்ட விசாரணைகள்',
+        'Total emails ingested': 'மொத்தம் பெறப்பட்ட மின்னஞ்சல்கள்',
+        'Accuracy Score': 'துல்லிய மதிப்பெண்',
+        'Matching engine precision': 'பொருத்த இயந்திரத் துல்லியம்',
+        'Escalated Disputes': 'மேல்முறையீடு செய்யப்பட்டவை',
+        'Requires operator review': 'இயக்குநரின் மதிப்பாய்வு தேவை',
+        'Alt. Matches Found': 'மாற்றுப் பொருட்கள் கண்டறியப்பட்டது',
+        'Deficit alternatives resolved': 'பற்றாக்குறை தீர்வுகள்',
+        'Live Pipeline': 'நேரடி செயல்பாடுகள்',
+        'Sales Intelligence': 'விற்பனைத் தகவல்',
+        'Operations Split': 'செயல்பாட்டுப் பகிர்வு',
+        'Operations Dispatcher Split': 'செயல்பாட்டுப் பகிர்வு வரைபடம்',
+        'Ratio of automated responses vs. human-in-the-loop reviews': 'தானியங்கி பதில்கள் மற்றும் நேரடி மதிப்புரைகளின் விகிதம்',
+        'Automated': 'தானியங்கி',
+        'Auto-Responded': 'தானியங்கி பதிலளிப்பு',
+        'Human Review': 'நேரடி மதிப்பாய்வு',
+        'Total Received': 'மொத்தம் பெறப்பட்டவை',
+        'all-time': 'இதுவரை',
+        'Sales Intelligence & Leakage': 'விற்பனைத் தகவல் & கசிவு பகுப்பாய்வு',
+        'Immediate operational insights, high-value clients, top quotes, and conversion leakages.': 'செயல்பாட்டு நுண்ணறிவு, முக்கிய வாடிக்கையாளர்கள் மற்றும் கசிவு பகுப்பாய்வு.',
+        'Conversion Funnel & Leakage': 'மாற்றப் புனல் & கசிவு',
+        'Total Ingested': 'மொத்தம் பெறப்பட்டவை',
+        'Converted (Quotes Sent)': 'மாற்றப்பட்டது (அனுப்பப்பட்டவை)',
+        'Leakage (Unmatched/Rejected)': 'கசிவு (பொருந்தாதவை/நிராகரிக்கப்பட்டவை)',
+        'Leakage Analysis:': 'கசிவு பகுப்பாய்வு:',
+        'Unmatched items:': 'பொருந்தாத பொருட்கள்:',
+        'Rejected discounts:': 'நிராகரிக்கப்பட்ட தள்ளுபடிகள்:',
+        'enquiries': 'விசாரணைகள்',
+        'Top Customers': 'முக்கிய வாடிக்கையாளர்கள்',
+        'Name / Email': 'பெயர் / மின்னஞ்சல்',
+        'Quotes': 'விலைப்பட்டியல்கள்',
+        'Value': 'மதிப்பு',
+        'No customers record': 'வாடிக்கையாளர் பதிவுகள் இல்லை',
+        'Top Quotations': 'முக்கிய விலைப்பட்டியல்கள்',
+        'Quote ID': 'விலைப்பட்டியல் எண்',
+        'Customer': 'வாடிக்கையாளர்',
+        'Total': 'மொத்தம்',
+        'No quotations record': 'விலைப்பட்டியல் பதிவுகள் இல்லை',
+        'Live Operations Pipeline': 'நேரடி செயல்பாட்டு வரிசை',
+        'Refreshing…': 'புதுப்பிக்கப்படுகிறது...',
+        'Auto-refresh every 10s': 'ஒவ்வொரு 10 வினாடிக்கும் புதுப்பிக்கப்படும்',
+        'Last updated:': 'கடைசியாக புதுப்பிக்கப்பட்டது:',
+        'Refresh Now': 'இப்போது புதுப்பி',
+        'New Mail': 'புதிய மின்னஞ்சல்',
+        'Reply': 'பதில்',
+        'Customer Request': 'வாடிக்கையாளர் கோரிக்கை',
+        'Rejected': 'நிராகரிக்கப்பட்டவை',
+        'Pending': 'நிலுவையில் உள்ளவை',
+        'New Request': 'புதிய கோரிக்கை',
+        'View Request': 'கோரிக்கையைப் பார்',
+        'Auto-Quoted': 'தானியங்கி விலைப்பட்டியல்',
+        'View Thread': 'பின்னணி விபரங்கள்',
+        'View Quote': 'விலைப்பட்டியலைப் பார்',
+        'Replied': 'பதிலளித்தார்',
+        'Escalated': 'மேல்முறையீடு',
+        'Active': 'செயலில் உள்ளவை',
+        'Decide': 'முடிவெடு',
+        'Stock Shortage': 'இருப்பு பற்றாக்குறை',
+        'Shortage:': 'பற்றாக்குறை:',
+        'Resolve': 'தீர்வு காண்',
+        'Draft Quotation': 'வரைவு விலைப்பட்டியல்',
+        'Draft Amount:': 'வரைவு தொகை:',
+        'Review': 'Review (மதிப்பாய்வு)',
+        'Approve & Send': 'Approve & Send (அனுப்பு)',
+        'Unmatched': 'பொருந்தாதவை',
+        'View': 'பார்',
+        'All clear': 'அனைத்தும் சரி',
+        "Today's Enquiries": 'இன்றைய விசாரணைகள்',
+        "Yesterday's Enquiries": 'நேற்றைய விசாரணைகள்',
+        'emails': 'மின்னஞ்சல்கள்',
+        'No enquiries recorded.': 'விசாரணைகள் ஏதும் இல்லை.',
+        'Export': 'ஏற்றுமதி செய்க',
+        'Search deficits...': 'தேடுக...',
+        'Refresh': 'புதுப்பி',
+        'Responded': 'பதிலளிக்கப்பட்டவை',
+        
+        // Deficits Tab Details
+        'Inventory Fulfillment': 'சரக்கு இருப்பு மேலாண்மை',
+        'Stock Deficits': 'இருப்பு பற்றாக்குறைகள்',
+        'Match alternatives and clear out-of-stock order lines before they stall a quotation.': 'மாற்றுப் பொருட்களைப் பொருத்தி, தடையற்ற விலைப்பட்டியலை உறுதி செய்யவும்.',
+        'Outstanding Deficits': 'நிலுவையில் உள்ள பற்றாக்குறைகள்',
+        'Resolved Matches': 'தீர்வு காணப்பட்டவை',
+        'Affected SKUs': 'பாதிக்கப்பட்ட தயாரிப்புகள்',
+        'Customers Waiting': 'காத்திருக்கும் வாடிக்கையாளர்கள்',
+        'Outstanding Stock Deficit Queue': 'நிலுவையில் உள்ள பற்றாக்குறை வரிசை',
+        'Invoice ID': 'விலைப்பட்டியல் எண்',
+        'Missing Catalog SKU': 'பற்றாக்குறை உள்ள தயாரிப்பு',
+        'Customer Name & Contact': 'வாடிக்கையாளர் பெயர் & தொடர்பு',
+        'Qty Shortage': 'பற்றாக்குறை அளவு',
+        'Stock Status': 'இருப்பு நிலை',
+        'Status': 'நிலை',
+        'Operation Action': 'செயல்பாடு',
+        'No deficits or stock shortages detected.': 'இருப்பு பற்றாக்குறைகள் ஏதும் இல்லை.',
+        'Resolve Match': 'தீர்வு காண்',
+        'Done': 'முடிந்தது',
+        
+        // Negotiations Tab Details
+        'Deal Optimization': 'ஒப்பந்த உகப்பாக்கம்',
+        'Escalated Negotiations': 'பேச்சுவார்த்தைகள்',
+        'Review and approve custom discounts requested by high-value customers.': 'முக்கிய வாடிக்கையாளர்களின் சிறப்புத் தள்ளுபடி கோரிக்கைகளை அங்கீகரிக்கவும்.',
+        'Outstanding Requests': 'நிலுவையில் உள்ள கோரிக்கைகள்',
+        'Average Discount': 'சராசரி தள்ளுபடி',
+        'Conversion Potential': 'மாற்ற சாத்தியக்கூறு',
+        'Dispute Resolution Queue': 'தீர்வு வரிசை',
+        'Requested Discount': 'கோரப்பட்ட தள்ளுபடி',
+        'Approve': 'அங்கீகரி',
+        'Reject': 'நிராகரி',
+        'No pending negotiations escalated.': 'நிலுவையில் உள்ள பேச்சுவார்த்தைகள் ஏதும் இல்லை.',
+        
+        // Inventory Tab Details
+        'Stock Overview': 'சரக்கு இருப்பு கண்ணோட்டம்',
+        'Catalog Inventory': 'தயாரிப்பு இருப்புப் பட்டியல்',
+        'Manage items, stock counts, categories, and verify base pricing.': 'தயாரிப்புகள், இருப்பு அளவுகள் மற்றும் விலைகளை நிர்வகிக்கவும்.',
+        'Total Items': 'மொத்த தயாரிப்புகள்',
+        'Low Stock Items': 'குறைந்த இருப்பு தயாரிப்புகள்',
+        'Total Inventory Value': 'மொத்த இருப்பு மதிப்பு',
+        'Master Catalog Queue': 'மாஸ்டர் தயாரிப்பு பட்டியல்',
+        'Search inventory...': 'தேடுக...',
+        'SKU ID': 'தயாரிப்பு குறியீடு',
+        'Product Name': 'தயாரிப்பு பெயர்',
+        'Category': 'பிரிவு',
+        'In Stock Qty': 'இருப்பு அளவு',
+        'Base Price': 'அடிப்படை விலை',
+        'Out of Stock': 'இருப்பு இல்லை',
+        'In Stock': 'இருப்பில் உள்ளது',
+        
+        // Pricing Tab Details
+        'Contract Configuration': 'ஒப்பந்த கட்டமைப்பு',
+        'Dynamic Contract Pricing': 'விலை நிர்ணயம்',
+        'Define client-specific pricing rules, volume discounts, and service tiers.': 'வாடிக்கையாளர் ஒப்பந்த விலைகள் மற்றும் தள்ளுபடி விதிகளை நிர்வகிக்கவும்.',
+        'Active Rules': 'செயலில் உள்ள விதிகள்',
+        'Global Discounts': 'பொதுவான தள்ளுபடிகள்',
+        'Contract Rules Queue': 'ஒப்பந்த விதிகள் வரிசை',
+        'Client Name': 'வாடிக்கையாளர் பெயர்',
+        'Rule Type': 'விதி வகை',
+        'Details': 'விவரங்கள்',
+        'No active contract rules defined.': 'விலை ஒப்பந்த விதிகள் ஏதும் இல்லை.',
+        
+        // AI Onboarding Tab Details
+        'Autonomous AI': 'தன்னாட்சி செயற்கை நுண்ணறிவு',
+        'AI Onboarding & Rules': 'AI சேர்க்கை & விதிகள்',
+        'Configure vertical specific business descriptions, catalogs, contact credentials and training prompts.': 'செயல்பாட்டுப் பிரிவுகளின் வணிக விளக்கங்கள் மற்றும் விதிகளை நிர்வகிக்கவும்.',
+        'Active Verticals': 'செயலில் உள்ள பிரிவுகள்',
+        'System Prompts': 'அமைப்பு அறிவுறுத்தல்கள்',
+        'Registered Clients': 'பதிவு செய்யப்பட்ட வாடிக்கையாளர்கள்',
+        'Vertical Configurations': 'பிரிவு அமைப்புகள்',
+        'Configure parameters': 'அளவீடுகளை அமைக்கவும்',
+        'Vertical Name': 'பிரிவின் பெயர்',
+        'Business Model': 'வணிக வகை',
+        'Support Email': 'ஆதரவு மின்னஞ்சல்',
+        'SMTP Username': 'SMTP பயனர்',
+        'Status Code': 'நிலை',
+        
+        // CRM Segments Tab Details
+        'CRM Directory': 'வாடிக்கையாளர் அடைவு',
+        'CRM Client Directory': 'வாடிக்கையாளர் பட்டியல்',
+        'Segment and view registered clients, contact logs, and history.': 'வாடிக்கையாளர் விபரங்கள் மற்றும் கொள்முதல் வரலாற்றைக் கண்காணிக்கவும்.',
+        'Client Base': 'வாடிக்கையாளர் எண்ணிக்கை',
+        'VIP Tier': 'வி.ஐ.பி பிரிவு',
+        'Regular Tier': 'சாதாரண பிரிவு',
+        'CRM Client Segment Base': 'வாடிக்கையாளர் தகவல் தளம்',
+        'Company': 'நிறுவனம்',
+        'Contact Phone': 'தொலைபேசி எண்',
+        'Contact Email': 'மின்னஞ்சல் முகவரி',
+        'Registered At': 'பதிவு செய்யப்பட்ட தேதி',
+        'Segment': 'பிரிவு',
+        'No clients registered.': 'வாடிக்கையாளர்கள் ஏதும் பதிவு செய்யப்படவில்லை.',
+
+        // AI Training Tab Details
+        'AI Learning': 'AI கற்றல்',
+        'AI Relevance Training': 'AI பயிற்சி',
+        'Train the relevance filter by defining product categories, intent signals, and synonyms.': 'பொருந்தும் தயாரிப்புகள் மற்றும் ஒத்த சொற்களின் மூலம் AI-க்குப் பயிற்சியளிக்கவும்.',
+        'Keywords Trained': 'பயிற்சியளிக்கப்பட்ட சொற்கள்',
+        'Synonyms Map': 'ஒத்த சொற்கள் வரைபடம்',
+        'Intent Keywords': 'நோக்கச் சொற்கள்',
+        'Intent Signals': 'நோக்க சிக்னல்கள்',
+        'Synonyms List': 'ஒத்த சொற்கள் பட்டியல்',
+        'Original Term': 'அசல் சொல்',
+        'Mapped Catalog Term': 'பொருத்தப்பட்ட சொல்',
+        'No training synonyms found.': 'ஒத்த சொற்கள் ஏதும் இல்லை.',
+
+        // Activity Log Tab Details
+        'Event Console': 'நிகழ்வு கன்சோல்',
+        'Activity Log Console': 'செயல்பாட்டு கன்சோல்',
+        'Real-time event stream of email processes, quote dispatches, and system errors.': 'மின்னஞ்சல் செயலாக்கம் மற்றும் கணினி நிகழ்வுகளின் நேரடி பதிவு.',
+        'Total Logs': 'மொத்த பதிவுகள்',
+        'Warning Events': 'எச்சரிக்கை நிகழ்வுகள்',
+        'Error Events': 'பிழை நிகழ்வுகள்',
+        'System Event Stream Log': 'கணினி நிகழ்வு பதிவு',
+        'Timestamp': 'நேரம்',
+        'Event Message': 'நிகழ்வு செய்தி',
+        'Severity': 'தீவிரம்',
+        'No events logged in database.': 'நிகழ்வுப் பதிவுகள் ஏதும் இல்லை.'
       }
     },
     t(key) {
@@ -62,9 +263,46 @@ function dashboardApp() {
       }
       return this.translations.en[key] || key;
     },
+    translateDOM() {
+      const isTa = this.language === 'ta';
+      const dict = this.translations.ta;
+      
+      const walk = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const trimmed = node.nodeValue.trim();
+          if (trimmed && dict[trimmed]) {
+            if (!node.parentElement.dataset.origText) {
+              node.parentElement.dataset.origText = node.nodeValue;
+            }
+            node.nodeValue = node.nodeValue.replace(trimmed, dict[trimmed]);
+          } else if (trimmed && !isTa && node.parentElement && node.parentElement.dataset.origText) {
+            node.nodeValue = node.parentElement.dataset.origText;
+          }
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          if (node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE' && node.tagName !== 'TEXTAREA') {
+            const placeholder = node.getAttribute('placeholder');
+            if (placeholder) {
+              const pTrimmed = placeholder.trim();
+              if (isTa && dict[pTrimmed]) {
+                if (!node.dataset.origPlaceholder) {
+                  node.dataset.origPlaceholder = placeholder;
+                }
+                node.setAttribute('placeholder', dict[pTrimmed]);
+              } else if (!isTa && node.dataset.origPlaceholder) {
+                node.setAttribute('placeholder', node.dataset.origPlaceholder);
+              }
+            }
+            node.childNodes.forEach(walk);
+          }
+        }
+      };
+      
+      walk(document.body);
+    },
     setLanguage(lang) {
       this.language = lang;
       localStorage.setItem('language', lang);
+      this.translateDOM();
       this.$nextTick(() => {
         if (typeof lucide !== 'undefined') {
           lucide.createIcons();
@@ -455,6 +693,17 @@ function dashboardApp() {
       this.loadTenants();
       this.loadSettings();
       this.loadActiveVertical();
+      
+      // Initialize DOM translation observer
+      this.$nextTick(() => {
+        this.translateDOM();
+        const observer = new MutationObserver(() => {
+          if (this.language === 'ta') {
+            this.translateDOM();
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      });
       
       // Auto-refresh dashboard pipeline every 10 seconds
       setInterval(() => {
