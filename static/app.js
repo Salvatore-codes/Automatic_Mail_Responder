@@ -54,6 +54,14 @@ function dashboardApp() {
         'Live': 'நேரடி',
         'Services': 'சேவைகள்',
         'Trading / Stocks': 'வர்த்தகம் / பொருட்கள்',
+        'Engine A (Local)': 'இன்ஜின் ஏ (உள்ளூர்)',
+        'Engine B (AI)': 'இன்ஜின் பி (AI)',
+        'Connect Outlook': 'அவுட்லுக்கை இணைக்கவும்',
+        'Ivory & Ink': 'ஐவரி & இங்க்',
+        'Midnight': 'நள்ளிரவு',
+        'Navy Gold': 'நேவி கோல்டு',
+        'Cyberpunk': 'சைபர்பங்க்',
+        'Admin Control Panel': 'நிர்வாகக் கட்டுப்பாட்டு குழு',
         
         // Overview Tab Details
         'Operations Command Center': 'செயல்பாட்டு கட்டுப்பாட்டு மையம்',
@@ -305,6 +313,7 @@ function dashboardApp() {
     setLanguage(lang) {
       this.language = lang;
       localStorage.setItem('language', lang);
+      document.title = lang === 'ta' ? "Trofeo Hardware — நிர்வாகக் கட்டுப்பாட்டு குழு" : "Trofeo Hardware — Admin Control Panel";
       this.translateDOM();
       this.$nextTick(() => {
         if (typeof lucide !== 'undefined') {
@@ -699,6 +708,9 @@ function dashboardApp() {
       
       // Initialize DOM translation observer
       this.$nextTick(() => {
+        if (this.language === 'ta') {
+          document.title = "Trofeo Hardware — நிர்வாகக் கட்டுப்பாட்டு குழு";
+        }
         this.translateDOM();
         const observer = new MutationObserver(() => {
           if (this.language === 'ta') {
