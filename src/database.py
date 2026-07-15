@@ -14,9 +14,35 @@ except ImportError:
     np = None
 
 # A lightweight pure-Python TF-IDF system for local semantic-like matching
+def correct_ocr_typos(text):
+    if not text:
+        return ""
+    # Common WinRT OCR misidentifications for Trofeo catalog items:
+    text = re.sub(r'\bblades-knife-io\b', 'blades-knife-10', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bblades knife io\b', 'blades knife 10', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bbolt-hex-mio-so\b', 'bolt-hex-m10-80', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bbolt hex mio so\b', 'bolt hex m10 80', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bbolt-hex-ms-so\b', 'bolt-hex-m8-50', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bbolt hex ms so\b', 'bolt hex m8 50', text, flags=re.IGNORECASE)
+    
+    # Generic OCR substitutions for common numeric/alphabetic mixups in SKU structures
+    text = re.sub(r'\bmio\b', 'm10', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bms\b', 'm8', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bm8[- ]so\b', 'm8-50', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bm10[- ]so\b', 'm10-80', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bknife[- ]io\b', 'knife-10', text, flags=re.IGNORECASE)
+    
+    # Fractions and dimensions OCR correction
+    text = re.sub(r'\b[il]/2\b', '1/2', text, flags=re.IGNORECASE)
+    text = re.sub(r'\b[il]\s+1/2\b', '1 1/2', text, flags=re.IGNORECASE)
+    text = re.sub(r'\b[il] inch\b', '1 inch', text, flags=re.IGNORECASE)
+    
+    return text
+
 def normalize_dimensions(text):
     if not text:
         return ""
+    text = correct_ocr_typos(text)
     text = text.lower()
     
     # Normalize unicode quotes/prime symbols to standard double/single quotes
@@ -201,6 +227,17 @@ class Catalog:
             log_synonym(clean_q, sku_id, tenant_id=self.tenant_id)
         except Exception as e:
             print(f"[Warning] Failed to save synonym to SQLite for tenant {self.tenant_id}: {e}")
+
+    def get_by_sku_id(self, sku_id):
+        """
+        Direct lookup of a catalog entry by its exact SKU ID (case-insensitive).
+        Returns the SKU dict if found, or None.
+        """
+        sku_id_upper = sku_id.strip().upper()
+        for sku in self.skus:
+            if sku['sku_id'].strip().upper() == sku_id_upper:
+                return sku
+        return None
 
     def check_synonyms(self, query):
         clean_q = query.lower().strip()
@@ -471,8 +508,12 @@ class Catalog:
         Returns list of matches in the same format as match_fuzzy/match_local_semantic.
         Falls back to empty list if vector index is not available.
         """
-        if np is None or self.embedding_matrix is None or len(self.embedding_ids) == 0:
+        if np is None:
             return []
+        if self.embedding_matrix is None or len(self.embedding_ids) == 0:
+            success = self.build_vector_index(client=client)
+            if not success or self.embedding_matrix is None:
+                return []
         
         # First check synonyms (instant exact match)
         syn_match = self.check_synonyms(query_text)
@@ -542,8 +583,12 @@ class Catalog:
         Returns a list of match lists corresponding to each query.
         Falls back to individual match_vector or empty list if vector index is not available or fails.
         """
-        if np is None or self.embedding_matrix is None or len(self.embedding_ids) == 0 or not queries:
+        if np is None or not queries:
             return [[] for _ in queries]
+        if self.embedding_matrix is None or len(self.embedding_ids) == 0:
+            success = self.build_vector_index(client=client)
+            if not success or self.embedding_matrix is None:
+                return [[] for _ in queries]
             
         # Check synonyms first for each query
         synonym_matches = [None] * len(queries)
@@ -636,37 +681,43 @@ class Catalog:
                     final_results.append(self.match_vector(queries[idx], client, threshold, limit))
             return final_results
 
-    def update_sku_stock(self, sku_id, new_stock):
+    def update_sku_properties(self, sku_id, new_stock=None, new_price=None):
         """
-        Updates the stock of a specific SKU in both memory and the catalog CSV file on disk.
+        Updates the stock and/or price of a specific SKU in both memory and the catalog CSV file on disk.
         """
         # 1. Update in memory
         found = False
         for sku in self.skus:
             if sku['sku_id'] == sku_id:
-                sku['stock'] = int(new_stock)
+                if new_stock is not None:
+                    sku['stock'] = int(new_stock)
+                if new_price is not None:
+                    sku['price'] = float(new_price)
                 found = True
                 break
         
         if not found:
-            print(f"[Catalog] Warning: SKU {sku_id} not found in catalog for stock update.")
+            print(f"[Catalog] Warning: SKU {sku_id} not found in catalog for property update.")
             return False
             
         # 2. Write back to CSV file
         try:
-            # Read the current file to get headers and all rows
-            rows = []
+            # Read the current file to get headers
             headers = []
             with open(self.csv_path, mode='r', encoding='utf-8') as f:
                 reader = csv.reader(f)
                 headers = next(reader)
                 
             # Read rows as dicts to preserve structure
+            rows = []
             with open(self.csv_path, mode='r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     if row.get('sku_id') == sku_id:
-                        row['stock'] = str(new_stock)
+                        if new_stock is not None:
+                            row['stock'] = str(new_stock)
+                        if new_price is not None:
+                            row['price'] = f"{float(new_price):.2f}"
                     rows.append(row)
                     
             # Write back to CSV
@@ -675,8 +726,14 @@ class Catalog:
                 writer.writeheader()
                 writer.writerows(rows)
                 
-            print(f"[Catalog] Successfully updated SKU {sku_id} stock to {new_stock} on disk.")
+            print(f"[Catalog] Successfully updated SKU {sku_id} properties (stock={new_stock}, price={new_price}) on disk.")
             return True
         except Exception as e:
-            print(f"[Catalog] Error writing updated stock to CSV: {e}")
+            print(f"[Catalog] Error writing updated properties to CSV: {e}")
             return False
+
+    def update_sku_stock(self, sku_id, new_stock):
+        """
+        Backward-compat method to update stock only.
+        """
+        return self.update_sku_properties(sku_id, new_stock=new_stock)

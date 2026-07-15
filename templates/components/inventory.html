@@ -1,0 +1,171 @@
+          <!-- TAB 6: CATALOG INVENTORY -->
+          <div class="tab-content" :class="{ 'active': activeTab === 'inventory' }">
+
+            <div class="ov-hero page-hero">
+              <div class="ov-hero-glow" aria-hidden="true"></div>
+              <div class="ov-hero-main">
+                <div class="ov-eyebrow">Catalog</div>
+                <h1 class="ov-title">Full Inventory</h1>
+                <p class="ov-sub">Live stock levels, base pricing, and availability across every SKU in the branch.</p>
+              </div>
+              <div class="ov-hero-side">
+                <div class="ov-pulse"><span class="ov-pulse-dot"></span> Live</div>
+              </div>
+            </div>
+
+            <!-- Inventory KPIs -->
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px;">
+              <div class="kpi-card">
+                <span x-text="activeVertical.business_type === 'Services' ? 'Total Services' : 'Total SKUs'"></span>
+                <strong x-text="catalog.length"></strong>
+              </div>
+              <div class="kpi-card">
+                <span x-text="activeVertical.business_type === 'Services' ? 'Active Services' : 'In Stock'"></span>
+                <strong style="color:var(--green);" x-text="catalog.filter(s => s.stock > 0).length"></strong>
+              </div>
+              <div class="kpi-card">
+                <span x-text="activeVertical.business_type === 'Services' ? 'Flexible Pricing' : 'Low Stock'"></span>
+                <strong style="color:var(--yellow);" x-text="activeVertical.business_type === 'Services' ? catalog.length : catalog.filter(s => s.stock > 0 && s.stock <= 5).length"></strong>
+              </div>
+              <div class="kpi-card">
+                <span x-text="activeVertical.business_type === 'Services' ? 'Fully Booked' : 'Out of Stock'"></span>
+                <strong style="color:var(--red);" x-text="catalog.filter(s => s.stock === 0).length"></strong>
+              </div>
+              <div class="kpi-card">
+                <span x-text="activeVertical.business_type === 'Services' ? 'Base Billing Rate' : 'Inventory Value'"></span>
+                <strong class="kpi-money" x-text="activeVertical.business_type === 'Services' ? fmt(catalog.reduce((a,s)=>a+(s.price||0),0)) : fmt(catalog.reduce((a,s)=>a+(s.stock||0)*(s.price||0),0))"></strong>
+              </div>
+            </div>
+
+            <div class="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-3">
+              <div class="flex justify-between items-center p-4 px-5 border-b border-[var(--border)] bg-[var(--bg-card2)]/50">
+                <div>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text-1)] flex items-center gap-2 m-0">
+                    <i data-lucide="warehouse" class="w-4 h-4 text-[var(--accent)]"></i>
+                    <span x-text="activeVertical.business_type === 'Services' ? 'Full Services & Pricing Catalog' : 'Full Product Inventory Catalog'"></span>
+                  </h3>
+                </div>
+                <div class="flex gap-3">
+                  <select x-model="inventoryCategory" @change="filterCatalog" class="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl text-xs text-[var(--text-1)] p-1.5 px-3 outline-none focus:border-[var(--accent)] cursor-pointer">
+                    <option value="all">All Categories</option>
+                    <template x-for="c in [...new Set(catalog.map(s => s.category).filter(Boolean))].sort()" :key="c">
+                      <option :value="c" x-text="c"></option>
+                    </template>
+                  </select>
+                  <select x-model="inventoryStatus" @change="filterCatalog" class="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl text-xs text-[var(--text-1)] p-1.5 px-3 outline-none focus:border-[var(--accent)] cursor-pointer">
+                    <option value="all">All Status</option>
+                    <option value="in" x-text="activeVertical.business_type === 'Services' ? 'Active' : 'In Stock'"></option>
+                    <option value="low" x-text="activeVertical.business_type === 'Services' ? 'Flexible' : 'Low Stock'"></option>
+                    <option value="out" x-text="activeVertical.business_type === 'Services' ? 'Fully Booked' : 'Out of Stock'"></option>
+                  </select>
+                  <input type="text" x-model="inventorySearch" @input="filterCatalog" class="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl text-xs text-[var(--text-1)] p-1.5 px-3 outline-none focus:border-[var(--accent)]" placeholder="Search SKU ID or Name..." />
+                  <button @click="loadCatalog" class="btn-micro px-2.5 py-1"><i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Refresh</button>
+                  <!-- Export Menu -->
+                  <div class="export-container" x-data="{ open: false }" @click.away="open = false">
+                    <button @click="open = !open" class="btn btn-ghost btn-sm" style="display:flex; align-items:center; gap:5px; height:100%; padding: 4px 10px; font-size:11px; border-radius: var(--r-sm);">
+                      <i data-lucide="download" style="width:12px; height:12px;"></i>
+                      <span>Export</span>
+                    </button>
+                    <div x-show="open" class="export-menu" style="display:none; right:0;">
+                      <button @click="exportInventoryReport('csv'); open = false;" class="export-item">CSV</button>
+                      <button @click="exportInventoryReport('xlsx'); open = false;" class="export-item">Excel (.xlsx)</button>
+                      <button @click="exportInventoryReport('pdf'); open = false;" class="export-item">PDF Document</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Table -->
+              <div class="overflow-x-auto max-w-full">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th @click="setCatalogSort('sku_id')" style="cursor:pointer; user-select:none;">
+                        <span x-text="activeVertical.business_type === 'Services' ? 'Service Code' : 'SKU ID'"></span>
+                        <span x-text="catalogSortField === 'sku_id' ? (catalogSortOrder === 'asc' ? '▲' : '▼') : ''"></span>
+                      </th>
+                      <th @click="setCatalogSort('sku_name')" style="cursor:pointer; user-select:none;">
+                        <span x-text="activeVertical.business_type === 'Services' ? 'Service Name' : 'Product Name'"></span>
+                        <span x-text="catalogSortField === 'sku_name' ? (catalogSortOrder === 'asc' ? '▲' : '▼') : ''"></span>
+                      </th>
+                      <th @click="setCatalogSort('category')" style="cursor:pointer; user-select:none;">Category <span x-text="catalogSortField === 'category' ? (catalogSortOrder === 'asc' ? '▲' : '▼') : ''"></span></th>
+                      <th @click="setCatalogSort('price')" style="cursor:pointer; user-select:none;">
+                        <span x-text="activeVertical.business_type === 'Services' ? 'Service Fee (Base)' : 'Price (Base)'"></span>
+                        <span x-text="catalogSortField === 'price' ? (catalogSortOrder === 'asc' ? '▲' : '▼') : ''"></span>
+                      </th>
+                      <th @click="setCatalogSort('stock')" style="cursor:pointer; user-select:none;">
+                        <span x-text="activeVertical.business_type === 'Services' ? 'Availability Basis' : 'Stock Level'"></span>
+                        <span x-text="catalogSortField === 'stock' ? (catalogSortOrder === 'asc' ? '▲' : '▼') : ''"></span>
+                      </th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-if="sortedCatalog().length === 0">
+                      <tr>
+                        <td colspan="8" class="p-0">
+                          <div class="table-empty">
+                            <i data-lucide="search-x" class="w-7 h-7"></i>
+                            <div class="te-title">No matching products</div>
+                            <div class="te-sub">Try a different search term, category, or stock status.</div>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                    <template x-for="(sku, idx) in paginatedCatalog()" :key="sku.sku_id">
+                      <tr>
+                        <td class="p-3.5 text-[var(--text-2)]" x-text="(catalogPage - 1) * catalogPageSize + idx + 1"></td>
+                        <td class="p-3.5 font-bold font-mono" x-text="sku.sku_id"></td>
+                        <td class="p-3.5"><strong x-text="sku.sku_name"></strong></td>
+                        <td class="p-3.5 text-[var(--text-2)]" x-text="sku.category"></td>
+                        <td class="p-3.5">
+                          <div class="flex flex-col">
+                            <span class="font-bold font-mono text-[var(--text-1)]" x-text="fmt(sku.price)"></span>
+                            <span class="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-3)]" 
+                                  :style="activeVertical.business_type === 'Services' ? 'color:var(--accent-2);' : ''"
+                                  x-text="activeVertical.business_type === 'Services' ? 'Dynamic / Hourly basis' : 'Static Price (Infrequent changes)'">
+                            </span>
+                          </div>
+                        </td>
+                        <td class="p-3.5">
+                          <template x-if="activeVertical.business_type === 'Services'">
+                            <span class="text-xs font-semibold text-[var(--text-2)]" x-text="sku.stock > 0 ? 'Retainer / Hourly' : 'Subscription Basis'"></span>
+                          </template>
+                          <template x-if="activeVertical.business_type !== 'Services'">
+                            <strong :class="sku.stock === 0 ? 'text-red-500' : (sku.stock <= 5 ? 'text-amber-500' : 'text-emerald-500')" x-text="sku.stock + ' units'"></strong>
+                          </template>
+                        </td>
+                        <td class="p-3.5">
+                          <template x-if="activeVertical.business_type === 'Services'">
+                            <span class="badge font-bold green" x-text="'Flexible Pricing'"></span>
+                          </template>
+                          <template x-if="activeVertical.business_type !== 'Services'">
+                            <span class="badge font-bold" :class="sku.stock === 0 ? 'red' : (sku.stock <= 5 ? 'yellow' : 'green')" x-text="sku.stock === 0 ? 'Out of stock' : (sku.stock <= 5 ? 'Low Stock' : 'In Stock')"></span>
+                          </template>
+                        </td>
+                        <td class="p-3.5">
+                          <button @click="openStockModal(sku.sku_id, sku.sku_name, sku.stock, sku.price)" class="btn-action-primary btn-action-primary-sm">
+                            <i data-lucide="edit" class="w-3.5 h-3.5"></i>
+                            <span x-text="activeVertical.business_type === 'Services' ? 'Modify Service' : 'Update Stock'"></span>
+                          </button>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Pagination -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:12px; border-top:1px solid var(--border); font-size:12px; color:var(--text-2);">
+                <div x-text="`Showing ${paginatedCatalog().length} of ${sortedCatalog().length} records`"></div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button @click="if(catalogPage > 1) catalogPage--" :disabled="catalogPage === 1" class="btn btn-ghost btn-sm" style="padding:4px 8px;">Prev</button>
+                  <span x-text="`Page ${catalogPage} of ${catalogTotalPages()}`"></span>
+                  <button @click="if(catalogPage < catalogTotalPages()) catalogPage++" :disabled="catalogPage === catalogTotalPages()" class="btn btn-ghost btn-sm" style="padding:4px 8px;">Next</button>
+                </div>
+              </div>
+            </div>
+
+          </div>

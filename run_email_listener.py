@@ -58,6 +58,8 @@ def main():
     
     try:
         while True:
+            # Reload environment from .env on every cycle so changes to .env are picked up live
+            load_dotenv(override=True)
             # Reload tenants dynamically on every cycle so changes to tenants.json are picked up live
             tenants = load_tenants()
             
@@ -72,7 +74,11 @@ def main():
                     email_pass = tenant_config.get("email_pass")
                     
                     mode = "mock"
-                    if email_user and email_pass and email_user.strip() != "" and not email_user.startswith("your_"):
+                    is_placeholder_user = not email_user or email_user.startswith("your_") or "your_store_email" in email_user
+                    is_placeholder_pass = not email_pass or "YOUR_" in email_pass or "your_" in email_pass or "<" in email_pass or "app_password" in email_pass
+                    outlook_secret = tenant_config.get("outlook_client_secret")
+                    
+                    if (email_user and email_pass and not is_placeholder_user and not is_placeholder_pass) or (email_user and outlook_secret and not is_placeholder_user):
                         mode = "live"
                         print(f"[Poller] Tenant: {tenant_id} ({name}) - LIVE Email Poller running (Inbox: {email_user})")
                     else:
